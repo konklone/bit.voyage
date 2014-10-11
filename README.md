@@ -10,8 +10,15 @@
 * Use the [File API](http://docs.webplatform.org/wiki/apis/file), available [in modern browsers](http://caniuse.com/#feat=fileapi), to chunk and stream file objects in-browser
 * Use the [FileReader object](https://developer.mozilla.org/en-US/docs/Web/API/FileReader), available [in modern browsers](http://caniuse.com/#feat=filereader), to read the contents of chunks into memory
 * **Short-term goal:** Use [WebSockets](http://docs.webplatform.org/wiki/apis/websocket), [available in modern browsers](http://caniuse.com/#feat=websockets), to send these chunks to a server over a controlled stream. The server should then stream received data into an S3 bucket.
-* **Long-term goal:** Instead of WebSockets, use the [AWS JS SDK](http://aws.amazon.com/sdk-for-browser/) and the [S3 Multipart Upload API](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTAPImpUpload.html) to allow users to upload directly to S3. Access credentials would either be entered by users, or bookmarked in the URL's hash fragment.
+* **Long-term goal:** Instead of WebSockets, use the [AWS JS SDK](http://aws.amazon.com/sdk-for-browser/) and the [S3 Multipart Upload API](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTAPImpUpload.html) to allow users to upload directly to S3.
 * **Longest-term goal:** Instead of S3, allow users to stream files directly to other users over WebRTC, in the style of [Sharefest.me](https://www.sharefest.me/), as long as their browser tab is open.
+
+### Work in progress
+
+Work is in progress on the short-term goal: send files over WebSockets to a server that stores those files somewhere.
+
+For right now, that's planned to be Amazon's S3 storage service. S3 access credentials will either be entered by users in text fields, or bookmarked in the URL's hash fragment.
+
 
 ### Credits
 
