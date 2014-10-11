@@ -16,7 +16,7 @@
 
 Created by [Eric Mill](https://twitter.com/konklone).
 
-Builds on work by [Max Ogden](http://maxogden.com/), [Derrick Parkhurst](https://github.com/thirtysixthspan/waterunderice), and [Young Hahn](https://github.com/mapbox/frameup).
+Builds on work by [Max Ogden](https://github.com/maxogden/filereader-stream), [Derrick Parkhurst](https://github.com/thirtysixthspan/waterunderice), and [Young Hahn](https://github.com/mapbox/frameup).
 
 ### Public domain
 
