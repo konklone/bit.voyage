@@ -23,12 +23,12 @@ For right now, that "somewhere" will be Amazon's S3 storage service. S3 access c
 
 Created by [Eric Mill](https://twitter.com/konklone).
 
-Builds on work by [Max Ogden](https://github.com/maxogden/filereader-stream), [Derrick Parkhurst](https://github.com/thirtysixthspan/waterunderice), and [Young Hahn](https://github.com/mapbox/frameup).
+Builds on work by [Brian Brennan](https://github.com/brianloveswords/fileliststream), [Max Ogden](https://github.com/maxogden/filereader-stream), [Derrick Parkhurst](https://github.com/thirtysixthspan/waterunderice), and [Young Hahn](https://github.com/mapbox/frameup).
 
 ### Public domain
 
 This project is [dedicated to the public domain](LICENSE). As spelled out in [CONTRIBUTING](CONTRIBUTING.md):
 
-> The project is in the public domain within the United States, and copyright and related rights in the work worldwide are waived through the [CC0 1.0 Universal public domain dedication](http://creativecommons.org/publicdomain/zero/1.0/).
+> The project is in the public domain within the United States, and copyright and related rights in the work worldwide are waived through the [CC0 1.0 Universal public domain dedication](https://creativecommons.org/publicdomain/zero/1.0/).
 
 > All contributions to this project will be released under the CC0 dedication. By submitting a pull request, you are agreeing to comply with this waiver of copyright interest.
