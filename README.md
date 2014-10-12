@@ -1,4 +1,4 @@
-## Upload anything (into S3)
+## Upload Anything
 
 **Vision:** Allow anyone with a modern browser to drag, drop, and stream a 1GB, 10GB, or 1TB file over the Internet to a happy home.
 
