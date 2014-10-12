@@ -45,6 +45,7 @@ var createReadStream = require('filereader-stream');
 // counter of MBs
 var mbs = 1;
 
+// stream a file to a place
 
 drop(target, function(files) {
   var first = files[0];
