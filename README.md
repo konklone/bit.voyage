@@ -1,4 +1,4 @@
-## Drag and drop anything into S3
+## Upload anything (into S3)
 
 **Goal:** Allow anyone with a modern browser to drag, drop, and stream a 1GB, 10GB, or 1TB file into Amazon S3.
 
@@ -15,10 +15,9 @@
 
 ### Work in progress
 
-Work is in progress on the short-term goal: send files over WebSockets to a server that stores those files somewhere.
+Work is in progress on the short-term goal: send files over WebSockets to a server that stores those files "somewhere".
 
-For right now, that's planned to be Amazon's S3 storage service. S3 access credentials will either be entered by users in text fields, or bookmarked in the URL's hash fragment.
-
+For right now, that "somewhere" will be Amazon's S3 storage service. S3 access credentials will either be entered by users in text fields, or bookmarked in the URL's hash fragment.
 
 ### Credits
 
