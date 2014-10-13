@@ -3,8 +3,6 @@
 <head>
   <title>Upload anything (into S3)</title>
   <link href="/assets/css/main.css" type="text/css" rel="stylesheet" />
-
-  <script src="/assets/js/aws-sdk-2.0.19.min.js"></script>
 </head>
 <body>
 
@@ -12,6 +10,21 @@
     <p>DROP A FILE HERE IT'S FUN</p>
   </section>
 
+  <section class="log">
+    <h3>Reading</h3>
+    <p id="file-log"></p>
+  </section>
+
+  <section class="log">
+    <h3>Uploading</h3>
+    <p id="aws-log"></p>
+  </section>
+
+  <div id="dragging">
+    <h2>RELEASE THE FILE YOU HOLD</h2>
+  </div>
+
   <script src="/assets/js/bundle.js"></script>
+  <script src="/index.js"></script>
 </body>
 </html>
