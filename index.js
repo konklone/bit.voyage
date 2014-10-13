@@ -9,13 +9,15 @@ var createReadStream = require('filereader-stream');
 
 // s3-upload-stream + AWS SDK
 var s3Stream = require('s3-upload-stream');
-var AWS = require("aws-sdk"); // frozen
+
+var AWS = require("archive");
+// var AWS = require("aws-sdk");
+
 AWS.config.update({
   accessKeyId: params.key,
   secretAccessKey: params.secret_key
 });
 s3Stream.client(new AWS.S3());
-
 
 // counter of MBs
 var MBs = 5;
