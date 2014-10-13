@@ -3934,186 +3934,7 @@ function inherits (c, p, proto) {
 //inherits(Child, Parent)
 //new Child
 
-},{}],"/home/eric/bulk/upload-anything/node_modules/s3-upload-stream/node_modules/setimmediate/setImmediate.js":[function(require,module,exports){
-(function (process){
-(function (global, undefined) {
-    "use strict";
-
-    if (global.setImmediate) {
-        return;
-    }
-
-    var nextHandle = 1; // Spec says greater than zero
-    var tasksByHandle = {};
-    var currentlyRunningATask = false;
-    var doc = global.document;
-    var setImmediate;
-
-    function addFromSetImmediateArguments(args) {
-        tasksByHandle[nextHandle] = partiallyApplied.apply(undefined, args);
-        return nextHandle++;
-    }
-
-    // This function accepts the same arguments as setImmediate, but
-    // returns a function that requires no arguments.
-    function partiallyApplied(handler) {
-        var args = [].slice.call(arguments, 1);
-        return function() {
-            if (typeof handler === "function") {
-                handler.apply(undefined, args);
-            } else {
-                (new Function("" + handler))();
-            }
-        };
-    }
-
-    function runIfPresent(handle) {
-        // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
-        // So if we're currently running a task, we'll need to delay this invocation.
-        if (currentlyRunningATask) {
-            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
-            // "too much recursion" error.
-            setTimeout(partiallyApplied(runIfPresent, handle), 0);
-        } else {
-            var task = tasksByHandle[handle];
-            if (task) {
-                currentlyRunningATask = true;
-                try {
-                    task();
-                } finally {
-                    clearImmediate(handle);
-                    currentlyRunningATask = false;
-                }
-            }
-        }
-    }
-
-    function clearImmediate(handle) {
-        delete tasksByHandle[handle];
-    }
-
-    function installNextTickImplementation() {
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            process.nextTick(partiallyApplied(runIfPresent, handle));
-            return handle;
-        };
-    }
-
-    function canUsePostMessage() {
-        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
-        // where `global.postMessage` means something completely different and can't be used for this purpose.
-        if (global.postMessage && !global.importScripts) {
-            var postMessageIsAsynchronous = true;
-            var oldOnMessage = global.onmessage;
-            global.onmessage = function() {
-                postMessageIsAsynchronous = false;
-            };
-            global.postMessage("", "*");
-            global.onmessage = oldOnMessage;
-            return postMessageIsAsynchronous;
-        }
-    }
-
-    function installPostMessageImplementation() {
-        // Installs an event handler on `global` for the `message` event: see
-        // * https://developer.mozilla.org/en/DOM/window.postMessage
-        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
-
-        var messagePrefix = "setImmediate$" + Math.random() + "$";
-        var onGlobalMessage = function(event) {
-            if (event.source === global &&
-                typeof event.data === "string" &&
-                event.data.indexOf(messagePrefix) === 0) {
-                runIfPresent(+event.data.slice(messagePrefix.length));
-            }
-        };
-
-        if (global.addEventListener) {
-            global.addEventListener("message", onGlobalMessage, false);
-        } else {
-            global.attachEvent("onmessage", onGlobalMessage);
-        }
-
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            global.postMessage(messagePrefix + handle, "*");
-            return handle;
-        };
-    }
-
-    function installMessageChannelImplementation() {
-        var channel = new MessageChannel();
-        channel.port1.onmessage = function(event) {
-            var handle = event.data;
-            runIfPresent(handle);
-        };
-
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            channel.port2.postMessage(handle);
-            return handle;
-        };
-    }
-
-    function installReadyStateChangeImplementation() {
-        var html = doc.documentElement;
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
-            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
-            var script = doc.createElement("script");
-            script.onreadystatechange = function () {
-                runIfPresent(handle);
-                script.onreadystatechange = null;
-                html.removeChild(script);
-                script = null;
-            };
-            html.appendChild(script);
-            return handle;
-        };
-    }
-
-    function installSetTimeoutImplementation() {
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            setTimeout(partiallyApplied(runIfPresent, handle), 0);
-            return handle;
-        };
-    }
-
-    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
-    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
-    attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
-
-    // Don't get fooled by e.g. browserify environments.
-    if ({}.toString.call(global.process) === "[object process]") {
-        // For Node.js before 0.9
-        installNextTickImplementation();
-
-    } else if (canUsePostMessage()) {
-        // For non-IE10 modern browsers
-        installPostMessageImplementation();
-
-    } else if (global.MessageChannel) {
-        // For web workers, where supported
-        installMessageChannelImplementation();
-
-    } else if (doc && "onreadystatechange" in doc.createElement("script")) {
-        // For IE 6–8
-        installReadyStateChangeImplementation();
-
-    } else {
-        // For older browsers
-        installSetTimeoutImplementation();
-    }
-
-    attachTo.setImmediate = setImmediate;
-    attachTo.clearImmediate = clearImmediate;
-}(new Function("return this")()));
-
-}).call(this,require('_process'))
-},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"aws-sdk":[function(require,module,exports){
+},{}],"aws-sdk":[function(require,module,exports){
 // AWS SDK for JavaScript v2.0.19
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // License at https://sdk.amazonaws.com/js/BUNDLE_LICENSE.txt
@@ -4364,8 +4185,6 @@ module.exports = params;
 var Writable = require('stream').Writable,
     events = require("events");
 
-require("setimmediate");
-
 var cachedClient;
 
 module.exports = {
@@ -4393,12 +4212,11 @@ module.exports = {
     // Parts which need to be uploaded to S3.
     var pendingParts = 0;
     var concurrentPartThreshold = 1;
-    var ready = false; // Initial ready state is false.
 
     // Data pertaining to buffers we have received
     var receivedBuffers = [];
     var receivedBuffersLength = 0;
-    var partSizeThreshold = 6242880;
+    var partSizeThreshold = 5242880;
 
     // Set the maximum amount of data that we will keep in memory before flushing it to S3 as a part
     // of the multipart upload
@@ -4442,11 +4260,13 @@ module.exports = {
     // Concurrenly upload parts to S3.
     var uploadHandler = function (next) {
       if (pendingParts < concurrentPartThreshold) {
-        // We need to upload some of the data we've received
-        if (ready)
+        // Has the MPU been created yet?
+        if (multipartUploadID)
           upload(); // Upload the part immeadiately.
-        else
+        else {
           e.once('ready', upload); // Wait until multipart upload is initialized.
+          createMultipartUpload();
+        }
       }
       else {
         // Block uploading (and receiving of more data) until we upload
@@ -4487,7 +4307,10 @@ module.exports = {
         receivedBuffersLength = remainder.length;
 
         // Return the original buffer.
-        return combinedBuffer.slice(0, partSizeThreshold);
+        var bufCopy = new Buffer(partSizeThreshold);
+        var slice = combinedBuffer.slice(0, partSizeThreshold);
+        slice.copy(bufCopy);
+        return bufCopy;
       }
       else {
         // It just happened to be perfectly sized, so return it.
@@ -4563,25 +4386,29 @@ module.exports = {
 
     // Turn all the individual parts we uploaded to S3 into a finalized upload.
     var completeUpload = function () {
-      cachedClient.completeMultipartUpload(
-        {
-          Bucket: destinationDetails.Bucket,
-          Key: destinationDetails.Key,
-          UploadId: multipartUploadID,
-          MultipartUpload: {
-            Parts: partIds
+      // There is a possibility that the incoming stream was empty, therefore the MPU never started
+      // and can not be finalized.
+      if (multipartUploadID) {
+        cachedClient.completeMultipartUpload(
+          {
+            Bucket: destinationDetails.Bucket,
+            Key: destinationDetails.Key,
+            UploadId: multipartUploadID,
+            MultipartUpload: {
+              Parts: partIds
+            }
+          },
+          function (err, result) {
+            if (err)
+              abortUpload('Failed to complete the multipart upload on S3: ' + JSON.stringify(err));
+            else {
+              // Emit both events for backwards compatability, and to follow the spec.
+              ws.emit('uploaded', result);
+              ws.emit('finish', result);
+            }
           }
-        },
-        function (err, result) {
-          if (err)
-            abortUpload('Failed to complete the multipart upload on S3: ' + JSON.stringify(err));
-          else {
-            // Emit both events for backwards compatability, and to follow the spec.
-            ws.emit('uploaded', result);
-            ws.emit('finish', result);
-          }
-        }
-      );
+        );
+      }
     };
 
     // When a fatal error occurs abort the multipart upload
@@ -4601,26 +4428,23 @@ module.exports = {
       );
     };
 
+    var createMultipartUpload = function () {
+      cachedClient.createMultipartUpload(
+        destinationDetails,
+        function (err, data) {
+          if (err)
+            ws.emit('error', 'Failed to create a multipart upload on S3: ' + JSON.stringify(err));
+          else {
+            multipartUploadID = data.UploadId;
+            ws.emit('ready');
+            e.emit('ready'); // Internal event
+          }
+        }
+      );
+    };
+
     if (!cachedClient) {
       throw new Error('Must configure an S3 client before attempting to create an S3 upload stream.');
-    }
-    else {
-      // Ensure that the writable stream is returned before we actually attempt to create the MPU.
-      setImmediate(function () {
-        cachedClient.createMultipartUpload(
-          destinationDetails,
-          function (err, data) {
-            if (err)
-              ws.emit('error', 'Failed to create a multipart upload on S3: ' + JSON.stringify(err));
-            else {
-              multipartUploadID = data.UploadId;
-              ready = true;
-              ws.emit('ready');
-              e.emit('ready'); // Internal event
-            }
-          }
-        );
-      });
     }
 
     return ws;
@@ -4628,4 +4452,4 @@ module.exports = {
 };
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","setimmediate":"/home/eric/bulk/upload-anything/node_modules/s3-upload-stream/node_modules/setimmediate/setImmediate.js","stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}]},{},[]);
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}]},{},[]);
