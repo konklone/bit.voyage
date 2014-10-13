@@ -108,7 +108,7 @@ var uploadFile = function(file) {
   // fstream.pipe(echo(1000));
 
   // up to S3!
-  stream.pipe(upload);
+  fstream.pipe(upload);
 
 };
 
