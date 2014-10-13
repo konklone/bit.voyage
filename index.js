@@ -3,6 +3,9 @@ var params = require("params.js");
 var filelog = require("log.js")("file-log");
 var awslog = require("log.js")("aws-log");
 
+var through2 = require("through2");
+var echo = require("echo.js");
+
 // basic file streaming, thank you @maxogden
 var createReadStream = require('filereader-stream');
 
@@ -38,18 +41,26 @@ var uploadFile = function(file) {
   * Create the file reading stream.
   **/
 
-  var stream = createReadStream(file, {
+  var fstream = createReadStream(file, {
     output: "binary",
     chunkSize: (1 * 1024 * 1024)
   });
 
-  stream.on('progress', printMegabytes);
+  fstream.on('progress', printMegabytes);
 
-  stream.on('end', function(size) {
+  fstream.on('pause', function(offset) {
+    console.log("filereader-stream has PAUSED at " + offset);
+  });
+
+  fstream.on('resume', function(offset) {
+    console.log("filereader-stream has RESUMED at " + offset);
+  });
+
+  fstream.on('end', function(size) {
     filelog("Done: " + size);
   });
 
-  stream.on('error', function(err, data) {
+  fstream.on('error', function(err, data) {
     console.log(err);
   })
 
@@ -93,8 +104,12 @@ var uploadFile = function(file) {
   })
 
 
+  // debugging, will hold chunks for X ms and echo length
+  // fstream.pipe(echo(1000));
+
   // up to S3!
   stream.pipe(upload);
+
 };
 
 

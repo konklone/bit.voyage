@@ -4824,20 +4824,20 @@ module.exports = drop;
 },{}],"echo.js":[function(require,module,exports){
 var Writable = require('stream').Writable;
 
-var newEcho = function() {
+var createEcho = function(delay) {
   var echo = new Writable({
     highWaterMark: 4194304
   });
 
   echo._write = function (chunk, encoding, next) {
     console.log("chunk received. " + chunk.length);
-    setTimeout(next, 1000);
+    setTimeout(next, delay);
   };
 
   return echo;
 }
 
-module.exports = newEcho;
+module.exports = createEcho;
 
 },{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"filereader-stream":[function(require,module,exports){
 (function (Buffer){
