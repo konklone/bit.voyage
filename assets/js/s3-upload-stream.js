@@ -299,7 +299,10 @@ module.exports = {
         receivedBuffersLength = remainder.length;
 
         // Return the original buffer.
-        return combinedBuffer.slice(0, partSizeThreshold);
+        var bufCopy = new Buffer(partSizeThreshold);
+        var slice = combinedBuffer.slice(0, partSizeThreshold);
+        slice.copy(bufCopy);
+        return bufCopy;
       }
       else {
         // It just happened to be perfectly sized, so return it.

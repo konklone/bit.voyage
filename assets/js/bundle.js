@@ -4372,8 +4372,8 @@ module.exports = {
     // Set the maximum amount of data that we will keep in memory before flushing it to S3 as a part
     // of the multipart upload
     ws.maxPartSize = function (partSize) {
-      // if (partSize < 5242880)
-      //   partSize = 5242880;
+      if (partSize < 5242880)
+        partSize = 5242880;
 
       partSizeThreshold = partSize;
       return ws;
@@ -4449,7 +4449,6 @@ module.exports = {
       receivedBuffersLength = 0;
 
       if (combinedBuffer.length > partSizeThreshold) {
-        console.log("combinedBuffer.length: " + combinedBuffer.length);
         // The combined buffer is too big, so slice off the end and put it back in the array.
         var remainder = new Buffer(combinedBuffer.length - partSizeThreshold);
         combinedBuffer.copy(remainder, 0, partSizeThreshold);
