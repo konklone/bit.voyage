@@ -4306,11 +4306,10 @@ module.exports = {
         receivedBuffers.push(remainder);
         receivedBuffersLength = remainder.length;
 
-        // Return the original buffer.
-        var bufCopy = new Buffer(partSizeThreshold);
-        var slice = combinedBuffer.slice(0, partSizeThreshold);
-        slice.copy(bufCopy);
-        return bufCopy;
+        // Return the perfectly sized part.
+        var uploadBuffer = new Buffer(partSizeThreshold);
+        combinedBuffer.copy(uploadBuffer, 0, 0, partSizeThreshold);
+        return uploadBuffer;
       }
       else {
         // It just happened to be perfectly sized, so return it.
