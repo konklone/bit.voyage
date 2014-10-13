@@ -2,8 +2,6 @@ var drop = require("drop.js");
 var params = require("params.js");
 var filelog = require("log.js")("file-log");
 var awslog = require("log.js")("aws-log");
-
-var through2 = require("through2");
 var echo = require("echo.js");
 
 // basic file streaming, thank you @maxogden

@@ -14,14 +14,13 @@
   "homepage": "https://github.com/konklone/upload-anything",
 
   "dependencies": {
-    "filereader-stream": "/home/eric/bulk/filereader-stream",
-    "s3-upload-stream": "git://github.com/konklone/s3-upload-stream.git#browser-patch",
-    "through2": "*"
+    "filereader-stream": "git://github.com/konklone/filereader-stream.git#backpressure",
+    "s3-upload-stream": "git://github.com/konklone/s3-upload-stream.git#browser-patch"
   },
 
   "main": "index.js",
   "scripts": {
-    "compile": "browserify -r ./assets/js/echo.js:echo.js -r through2 -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
-    "watch": "watchify -r ./assets/js/echo.js:echo.js -r through2 -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
+    "compile": "browserify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
+    "watch": "watchify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
   }
 }
