@@ -8,7 +8,7 @@ var createReadStream = require('filereader-stream');
 
 // s3-upload-stream + AWS SDK
 var s3Stream = require('s3-upload-stream');
-var AWS = require("aws-sdk-2.0.19.min.js");
+var AWS = require("aws-sdk"); // frozen
 AWS.config.update({
   accessKeyId: params.key,
   secretAccessKey: params.secret_key

@@ -20,7 +20,7 @@
 
   "main": "index.js",
   "scripts": {
-    "compile": "browserify -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
-    "watch": "watchify -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
+    "compile": "browserify -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
+    "watch": "watchify -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
   }
 }

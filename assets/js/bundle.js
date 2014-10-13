@@ -4113,7 +4113,7 @@ function inherits (c, p, proto) {
 }(new Function("return this")()));
 
 }).call(this,require('_process'))
-},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"aws-sdk-2.0.19.min.js":[function(require,module,exports){
+},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"aws-sdk":[function(require,module,exports){
 // AWS SDK for JavaScript v2.0.19
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // License at https://sdk.amazonaws.com/js/BUNDLE_LICENSE.txt
