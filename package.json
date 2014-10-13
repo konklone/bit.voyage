@@ -15,20 +15,12 @@
 
   "dependencies": {
     "filereader-stream": "*",
-    "s3-upload-stream": "*",
-    "setimmediate": "*"
-  },
-
-  "devDependencies": {
-    "beefy": "*",
-    "gulp": "^3.6.2",
-    "gulp-browserify": "^0.5.0",
-    "gulp-rename": "^1.2.0"
+    "s3-upload-stream": "git://github.com/konklone/s3-upload-stream.git#browser-patch"
   },
 
   "main": "index.js",
   "scripts": {
-    "compile": "browserify -r setimmediate -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r ./assets/js/s3-upload-stream.js:s3-upload-stream.js > assets/js/bundle.js",
-    "watch": "watchify -r setimmediate -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r ./assets/js/s3-upload-stream.js:s3-upload-stream.js -o assets/js/bundle.js"
+    "compile": "browserify -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
+    "watch": "watchify -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
   }
 }

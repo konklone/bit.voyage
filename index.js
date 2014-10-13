@@ -1,35 +1,20 @@
-// arms a target with drag-and-drop callbacks
 var drop = require("drop.js");
-
-// reads in querystring-like params from the location hash
 var params = require("params.js");
-
-// basic visible logging
 var filelog = require("log.js")("file-log");
 var awslog = require("log.js")("aws-log");
 
 // basic file streaming, thank you @maxogden
 var createReadStream = require('filereader-stream');
 
-// AWS SDK, used for ease of handling multipart uploads
+// s3-upload-stream + AWS SDK
+var s3Stream = require('s3-upload-stream');
 var AWS = require("aws-sdk-2.0.19.min.js");
-
-
-var s3Stream = require('s3-upload-stream.js');
-
-
-// AWS creds
-//   key: access key
-//   secret_key: secret key
-//   bucket: bucket name
 AWS.config.update({
   accessKeyId: params.key,
   secretAccessKey: params.secret_key
 });
-
 s3Stream.client(new AWS.S3());
 
-/** various progress functions **/
 
 // counter of MBs
 var MBs = 5;
@@ -43,8 +28,7 @@ var printMegabytes = function(progress) {
   }
 }
 
-// less 1/128th of the bytes
-var adjust = function(x) {return x - (x/128)};
+
 
 /** manage file and AWS streams */
 
@@ -89,14 +73,13 @@ var uploadFile = function(file) {
 
   // by default, part size means a 50GB max (1000 part limit)
   // by raising part size, we increase total capacity
-  // if (file.size > (50 * 1024 * 1024 * 1024)) {
-  //   var newSize = file.size / 900;
-  //   upload.maxPartSize(newSize); // 900 for buffer
-  //   awslog("Adjusting part size: " + newSize);
-  // } else {
-    // upload.maxPartSize((200 * 1024));
+  if (file.size > (50 * 1024 * 1024 * 1024)) {
+    var newSize = file.size / 900;
+    upload.maxPartSize(newSize); // 900 for buffer
+    awslog("Adjusting part size: " + newSize);
+  } else {
     upload.maxPartSize(5 * 1024 * 1024);
-  // }
+  }
 
   // 1 at a time for now
   upload.concurrentParts(1);
@@ -115,10 +98,5 @@ var uploadFile = function(file) {
 };
 
 
-
-
-drop(document.body, function(files) {
-  uploadFile(files[0]);
-});
-
+drop(document.body, function(files) {uploadFile(files[0]);});
 console.log("Drop target armed.")
