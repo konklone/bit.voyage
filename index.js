@@ -1,79 +1,124 @@
-// drop target
-var target = document.getElementById("drop-here");
+// arms a target with drag-and-drop callbacks
+var drop = require("drop.js");
 
-/**
-  basic drag and drop event-ery
-  adapted from https://github.com/mikolalysenko/drag-and-drop-files
-  so this is under an MIT license
-**/
-function handleDrop(callback, event) {
-  event.stopPropagation();
-  event.preventDefault();
-  callback(Array.prototype.slice.call(event.dataTransfer.files))
-}
+// reads in querystring-like params from the location hash
+var params = require("params.js");
 
-// indicate it's active
-function onDragEnter(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  window.event = event;
-  return false;
-}
+// basic visible logging
+var filelog = require("log.js")("file-log");
+var awslog = require("log.js")("aws-log");
 
-// don't do anything while dragging
-function onDragOver(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  return false;
-}
-
-// set up callbacks on element
-function drop(element, callback) {
-  element.addEventListener("dragenter", onDragEnter, false);
-  element.addEventListener("dragover", onDragOver, false);
-  element.addEventListener("drop", handleDrop.bind(undefined, callback), false);
-}
-/** end MIT licensed modifications **/
-
-
-// used for debugging
-var concat = require('concat-stream');
-
-// thank you @maxogden
+// basic file streaming, thank you @maxogden
 var createReadStream = require('filereader-stream');
 
+// AWS SDK, used for ease of handling multipart uploads
+var AWS = require("aws-sdk-2.0.19.min.js");
+
+
+var s3Stream = require('s3-upload-stream.js');
+
+
+// AWS creds
+//   key: access key
+//   secret_key: secret key
+//   bucket: bucket name
+AWS.config.update({
+  accessKeyId: params.key,
+  secretAccessKey: params.secret_key
+});
+
+s3Stream.client(new AWS.S3());
+
+/** various progress functions **/
+
 // counter of MBs
-var mbs = 1;
+var MBs = 5;
+var MB = 1000 * 1000;
+var next = 1;
+var printMegabytes = function(progress) {
+  if (progress > (next * (MBs * MB))) {
+    var current = parseInt(progress / (MBs * MB)) * MBs;
+    filelog("MBs: " + current);
+    next = parseInt((current + MBs) / MBs);
+  }
+}
 
-// stream a file to a place
+// less 1/128th of the bytes
+var adjust = function(x) {return x - (x/128)};
 
-drop(target, function(files) {
-  var first = files[0];
-  var stream = createReadStream(first, {
+/** manage file and AWS streams */
+
+var uploadFile = function(file) {
+
+  /**
+  * Create the file reading stream.
+  **/
+
+  var stream = createReadStream(file, {
     output: "binary",
-    chunkSize: 8128 // default
+    chunkSize: (1 * 1024 * 1024)
   });
 
-  stream.on('progress', function(progress) {
-    if (progress > (mbs * 1000 * 1000)) {
-      console.log("MBs: " + mbs);
-      mbs += 1;
-    }
-
-    // console.log("Made it: " + progress);
-  });
+  stream.on('progress', printMegabytes);
 
   stream.on('end', function(size) {
-    console.log("Done: " + size);
+    filelog("Done: " + size);
   });
 
-  console.log(first.name +  ": embarking on a " + first.size + "-byte journey.");
+  stream.on('error', function(err, data) {
+    console.log(err);
+  })
 
-  stream.pipe({write: function(data) {
-    // console.log(data);
-    // do nothing with the data
-  }});
+  filelog(file.name +  ": embarking on a " + file.size + "-byte voyage.");
 
+
+  /**
+  * Create the upload stream.
+  **/
+  var upload = new s3Stream.upload({
+    "Bucket": params.bucket,
+    "Key": file.name,
+    "ContentType": file.type,
+    "ACL": "public-read"
+  });
+
+  upload.on('error', function(err, data) {
+    console.log(err);
+    window.arguments = arguments;
+  })
+
+  // by default, part size means a 50GB max (1000 part limit)
+  // by raising part size, we increase total capacity
+  // if (file.size > (50 * 1024 * 1024 * 1024)) {
+  //   var newSize = file.size / 900;
+  //   upload.maxPartSize(newSize); // 900 for buffer
+  //   awslog("Adjusting part size: " + newSize);
+  // } else {
+    // upload.maxPartSize((200 * 1024));
+    upload.maxPartSize(5 * 1024 * 1024);
+  // }
+
+  // 1 at a time for now
+  upload.concurrentParts(1);
+
+  upload.on('part', function(data) {
+    awslog("Part " + data.PartNumber + ": " + data.ETag);
+  });
+
+  upload.on('uploaded', function(data) {
+    awslog("Done! <a href=\"" + data.Location + "\">" + data.Location + "</a>");
+  })
+
+
+  // up to S3!
+  stream.pipe(upload);
+};
+
+
+
+
+drop(document.body, function(files) {
+  uploadFile(files[0]);
 });
 
 console.log("Drop target armed.")

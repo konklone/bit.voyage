@@ -2,12 +2,8 @@
   "name": "upload-anything",
   "version": "0.0.1",
   "description": "Upload anything.",
-  "main": "index.js",
   "author": "Eric Mill",
   "license": "CC0",
-  "scripts": {
-    "compile": "browserify index.js > index-compiled.js"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/konklone/upload-anything.git"
@@ -16,12 +12,23 @@
     "url": "https://github.com/konklone/upload-anything/issues"
   },
   "homepage": "https://github.com/konklone/upload-anything",
+
   "dependencies": {
     "filereader-stream": "*",
-    "drag-and-drop-files": "*"
+    "s3-upload-stream": "*",
+    "setimmediate": "*"
   },
 
   "devDependencies": {
-    "concat-stream": "*"
+    "beefy": "*",
+    "gulp": "^3.6.2",
+    "gulp-browserify": "^0.5.0",
+    "gulp-rename": "^1.2.0"
+  },
+
+  "main": "index.js",
+  "scripts": {
+    "compile": "browserify -r setimmediate -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r ./assets/js/s3-upload-stream.js:s3-upload-stream.js > assets/js/bundle.js",
+    "watch": "watchify -r setimmediate -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws-sdk-2.0.19.min.js:aws-sdk-2.0.19.min.js -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r ./assets/js/s3-upload-stream.js:s3-upload-stream.js -o assets/js/bundle.js"
   }
 }

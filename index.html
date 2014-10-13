@@ -2,16 +2,29 @@
 <html>
 <head>
   <title>Upload anything (into S3)</title>
-
-  <link href="main.css" type="text/css" rel="stylesheet" />
+  <link href="/assets/css/main.css" type="text/css" rel="stylesheet" />
 </head>
 <body>
 
-<section id="drop-here" class="drop-here">
-  <p>DROP A FILE HERE IT'S FUN</p>
-</section>
+  <section id="drop-here" class="drop-here">
+    <p>DROP A FILE HERE IT'S FUN</p>
+  </section>
 
+  <section class="log">
+    <h3>Reading</h3>
+    <p id="file-log"></p>
+  </section>
 
-<script src="index-compiled.js"></script>
+  <section class="log">
+    <h3>Uploading</h3>
+    <p id="aws-log"></p>
+  </section>
+
+  <div id="dragging">
+    <h2>RELEASE THE FILE YOU HOLD</h2>
+  </div>
+
+  <script src="/assets/js/bundle.js"></script>
+  <script src="/index.js"></script>
 </body>
 </html>
