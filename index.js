@@ -29,6 +29,15 @@ var printMegabytes = function(progress) {
   }
 }
 
+function display(bytes) {
+  if (bytes > 1e9)
+    return (bytes / 1e9).toFixed(2) + 'GB';
+  else if (bytes > 1e6)
+    return (bytes / 1e6).toFixed(2) + 'MB';
+  else
+    return (bytes / 1e3).toFixed(2) + 'KB';
+};
+
 
 
 /** manage file and AWS streams */
@@ -80,12 +89,13 @@ var uploadFile = function(file) {
     window.arguments = arguments;
   })
 
-  // by default, part size means a 50GB max (1000 part limit)
+  // by default, part size means a 50GB max (10000 part limit)
   // by raising part size, we increase total capacity
   if (file.size > (50 * 1024 * 1024 * 1024)) {
-    var newSize = file.size / 900;
-    upload.maxPartSize(newSize); // 900 for buffer
-    awslog("Adjusting part size: " + newSize);
+    var newSize = parseInt(file.size / 9500);
+    upload.maxPartSize(newSize); // 9500 for buffer
+    awslog("Adjusting part size: " + display(newSize));
+    console.log("Part size should be: " + newSize);
   } else {
     upload.maxPartSize(5 * 1024 * 1024);
   }
