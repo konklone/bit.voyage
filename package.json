@@ -15,7 +15,7 @@
 
   "dependencies": {
     "filereader-stream": "git://github.com/konklone/filereader-stream.git#backpressure",
-    "s3-upload-stream": "git://github.com/konklone/s3-upload-stream.git#buffer-memory"
+    "s3-upload-stream": "git://github.com/nathanpeck/s3-upload-stream.git#1.0.5"
   },
 
   "main": "index.js",
