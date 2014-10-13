@@ -56,7 +56,7 @@ var uploadFile = function(file) {
 
   var stream = createReadStream(file, {
     output: "binary",
-    chunkSize: adjust(1 * 1024 * 1024)
+    chunkSize: (1 * 1024 * 1024)
   });
 
   stream.on('progress', printMegabytes);
@@ -89,13 +89,14 @@ var uploadFile = function(file) {
 
   // by default, part size means a 50GB max (1000 part limit)
   // by raising part size, we increase total capacity
-  if (file.size > (50 * 1024 * 1024 * 1024)) {
-    var newSize = file.size / 900;
-    upload.maxPartSize(newSize); // 900 for buffer
-    awslog("Adjusting part size: " + newSize);
-  } else {
-    upload.maxPartSize(5242880);
-  }
+  // if (file.size > (50 * 1024 * 1024 * 1024)) {
+  //   var newSize = file.size / 900;
+  //   upload.maxPartSize(newSize); // 900 for buffer
+  //   awslog("Adjusting part size: " + newSize);
+  // } else {
+    // upload.maxPartSize((200 * 1024));
+    upload.maxPartSize(5 * 1024 * 1024);
+  // }
 
   // 1 at a time for now
   upload.concurrentParts(1);
