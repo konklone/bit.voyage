@@ -20,7 +20,7 @@
 
 ### Working demo
 
-A working demo is available at [bit.voyage](http://bit.voyage). It lets you drag files of up to around **100GB** into an S3 bucket. Files much larger than that will cause the submission of very large parts, and around the 1TB range they may crash your browser.
+A working demo is available at [bit.voyage](http://bit.voyage). It lets you drag files of up to around **100GB** into an S3 bucket. Files much larger than that will cause your browser to try to send very large parts, and files of around the 1TB range may crash your browser (like they did mine).
 
 * Enter your S3 credentials into the URL hash:
 
