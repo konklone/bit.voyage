@@ -1,5 +1,7 @@
 ## Bit Voyage
 
+[![working-demo](https://cloud.githubusercontent.com/assets/4592/4611627/3244f16a-52bd-11e4-9d5d-1597844b342a.png)](#working-demo)
+
 **[Jump to the working demo.](#working-demo)**
 
 **Vision:** Allow anyone with a modern browser to drag, drop, and stream a 1GB, 10GB, 100GB, or 1TB file over the Internet to a happy home.
