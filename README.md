@@ -50,7 +50,7 @@ http://bit.voyage/#bucket=[your-bucket]&key=[your-key]&secret_key=[your-secret-k
 
 Next steps include:
 
-* Petitioning the Internet Archive to add CORS to their S3-like API.
+* Petitioning the Internet Archive to add CORS to their [S3-like API](https://archive.org/help/abouts3.txt).
 * Making a new UI.
 * Resuming very large downloads. I have yet to actually store a complete 100GB file, because of the time involved.
 
