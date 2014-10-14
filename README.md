@@ -16,9 +16,54 @@
 * **Long-term:** Allow upload to servers which support the Amazon S3 API but provide their own layer of authentication. Example: [The Internet Archive](https://archive.org/help/abouts3.txt).
 * **Longest-term:** Instead of S3, allow users to stream files directly to other users over WebRTC, in the style of [Sharefest.me](https://www.sharefest.me/), as long as their browser tab is open.
 
-### Work in progress
+### Working demo
 
-Work is in progress on the short-term goal: upload files to Amazon's S3 storage service. S3 access credentials will either be entered by users in text fields, or bookmarked in the URL's hash fragment.
+A working demo is available at [bit.voyage](http://bit.voyage).
+
+* Enter your S3 credentials into the URL:
+
+```
+http://bit.voyage/#bucket=[your-bucket]&key=[your-key]&secret_key=[your-secret-key]
+```
+
+* Make sure your S3 bucket [has CORS enabled](http://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html). Use the following CORS configuration, changing `http://bit.voyage` to `*` if you want it to work with more domains.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <CORSRule>
+        <AllowedOrigin>http://bit.voyage</AllowedOrigin>
+        <AllowedMethod>HEAD</AllowedMethod>
+        <AllowedMethod>GET</AllowedMethod>
+        <AllowedMethod>PUT</AllowedMethod>
+        <AllowedMethod>POST</AllowedMethod>
+        <AllowedMethod>DELETE</AllowedMethod>
+        <ExposeHeader>ETag</ExposeHeader>
+        <AllowedHeader>*</AllowedHeader>
+    </CORSRule>
+</CORSConfiguration>
+```
+
+Currently, this demo can process files of around **100GB**. Files much larger than that will cause the submission of very large parts, and around the 1TB range they may crash your browser.
+
+Next steps include:
+
+* Petitioning the Internet Archive to add CORS to their S3-like API.
+* Making a new UI.
+* Resuming very large downloads. I have yet to actually store a complete 100GB file, because of the time involved.
+
+### Getting to 1TB+
+
+For Amazon S3, this will require making 100MB+ HTTP POST requests, which realistically can only be done by a server. So, this involves:
+
+* Finding or making a websocket stream library that can receive file data.
+* Finding or making a thin web server that can receive websocket data and make authorized multipart uploads to S3.
+* Being able to handle backpressure from the server all the way down to reading the file.
+* Sending progress/etc events down the wire as well.
+
+One interesting project is @maxogden's [`abstract-blog-store`](https://github.com/maxogden/abstract-blob-store), which aims to present a consistent interface to streaming blobs up and down anything that supports a stream. It's a little nascent, and doesn't yet have the semantics to support resumption, but it feels like the right direction.
+
+
 
 ### Credits
 
