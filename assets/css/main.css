@@ -12,8 +12,8 @@ section.drop-here {
   margin: 0; padding: 0;
 }
 
-section.log {margin-top: 20px; margin-bottom: 20px;}
-section.log h3 {
+section.log, section.instructions {margin-top: 20px; margin-bottom: 20px;}
+section.log h3, section.instructions h3 {
   font-weight: bold; font-size: 12pt;
   margin: 0; padding: 0; padding-top: 10px; padding-left: 10px;
 }
@@ -21,6 +21,17 @@ section.log p {
   padding: 0 10px;
   height: 55px; overflow-y: scroll;
 }
+
+section.instructions p {padding: 0 10px;}
+
+code, pre {margin: 0; padding: 0;}
+pre {
+  padding: 10px 10px;
+  margin: 10px;
+  background-color: #e5e5e5;
+}
+
+code.inline {background-color: #e5e5e5; padding: 0 3px;}
 
 #dragging {
   display: none;

@@ -16,7 +16,6 @@ AWS.config.update({
 });
 s3Stream.client(new AWS.S3());
 
-
 // counter of MBs
 var MBs = 5;
 var MB = 1000 * 1000;
