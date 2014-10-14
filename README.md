@@ -1,5 +1,7 @@
 ## Bit Voyage
 
+**[Jump to the working demo.]**
+
 **Vision:** Allow anyone with a modern browser to drag, drop, and stream a 1GB, 10GB, 100GB, or 1TB file over the Internet to a happy home.
 
 **Requirements:** Files should never be read entirely into memory at any stage. File progress should be real-time and clear. Uploads should be resumable and pause-able at any time.
@@ -12,7 +14,7 @@
 
 **Goals:**
 
-* **Short-term:** Use the [S3 Multipart Upload API](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTAPImpUpload.html) to allow users to upload files of any size directly to S3.
+* **Short-term:** Use the [S3 Multipart Upload API](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTAPImpUpload.html) to allow users to upload files of any size directly to S3. (**Update:** this is working, for up to ~100GB.)
 * **Long-term:** Allow upload to servers which support the Amazon S3 API but provide their own layer of authentication. Example: [The Internet Archive](https://archive.org/help/abouts3.txt).
 * **Longest-term:** Instead of S3, allow users to stream files directly to other users over WebRTC, in the style of [Sharefest.me](https://www.sharefest.me/), as long as their browser tab is open.
 
