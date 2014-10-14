@@ -1,6 +1,6 @@
 ## Bit Voyage
 
-**Vision:** Allow anyone with a modern browser to drag, drop, and stream a 1GB, 10GB, or 1TB file over the Internet to a happy home.
+**Vision:** Allow anyone with a modern browser to drag, drop, and stream a 1GB, 10GB, 100GB, or 1TB file over the Internet to a happy home.
 
 **Requirements:** Files should never be read entirely into memory at any stage. File progress should be real-time and clear. Uploads should be resumable and pause-able at any time.
 
@@ -18,9 +18,9 @@
 
 ### Working demo
 
-A working demo is available at [bit.voyage](http://bit.voyage).
+A working demo is available at [bit.voyage](http://bit.voyage). It lets you drag files of up to around **100GB** into an S3 bucket. Files much larger than that will cause the submission of very large parts, and around the 1TB range they may crash your browser.
 
-* Enter your S3 credentials into the URL:
+* Enter your S3 credentials into the URL hash:
 
 ```
 http://bit.voyage/#bucket=[your-bucket]&key=[your-key]&secret_key=[your-secret-key]
@@ -43,8 +43,6 @@ http://bit.voyage/#bucket=[your-bucket]&key=[your-key]&secret_key=[your-secret-k
     </CORSRule>
 </CORSConfiguration>
 ```
-
-Currently, this demo can process files of around **100GB**. Files much larger than that will cause the submission of very large parts, and around the 1TB range they may crash your browser.
 
 Next steps include:
 
