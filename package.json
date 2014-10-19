@@ -15,12 +15,13 @@
 
   "dependencies": {
     "filereader-stream": "git://github.com/konklone/filereader-stream.git#backpressure",
-    "s3-upload-stream": "git://github.com/nathanpeck/s3-upload-stream.git#1.0.5"
+    "s3-upload-stream": "*",
+    "aws-sdk": "*"
   },
 
   "main": "index.js",
   "scripts": {
-    "compile": "browserify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
-    "watch": "watchify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r ./assets/js/aws.js:aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
+    "compile": "browserify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
+    "watch": "watchify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
   }
 }
