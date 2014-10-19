@@ -1,17 +1,17 @@
 {
-  "name": "upload-anything",
-  "version": "0.0.1",
-  "description": "Upload anything.",
+  "name": "bit-voyage",
+  "version": "0.1.0",
+  "description": "Send your bits on a voyage.",
   "author": "Eric Mill",
   "license": "CC0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/konklone/upload-anything.git"
+    "url": "https://github.com/konklone/bit-voyage.git"
   },
   "bugs": {
-    "url": "https://github.com/konklone/upload-anything/issues"
+    "url": "https://github.com/konklone/bit-voyage/issues"
   },
-  "homepage": "https://github.com/konklone/upload-anything",
+  "homepage": "https://github.com/konklone/bit-voyage",
 
   "dependencies": {
     "filereader-stream": "git://github.com/konklone/filereader-stream.git#backpressure",
