@@ -3903,7 +3903,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/eric/bulk/upload-anything/node_modules/filereader-stream/node_modules/inherits/inherits.js":[function(require,module,exports){
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/filereader-stream/node_modules/inherits/inherits.js":[function(require,module,exports){
 module.exports = inherits
 
 function inherits (c, p, proto) {
@@ -4149,7 +4149,7 @@ FileStream.prototype.abort = function() {
 inherits(FileStream, EventEmitter)
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","inherits":"/home/eric/bulk/upload-anything/node_modules/filereader-stream/node_modules/inherits/inherits.js"}],"log.js":[function(require,module,exports){
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","inherits":"/home/eric/bulk/bit-voyage/node_modules/filereader-stream/node_modules/inherits/inherits.js"}],"log.js":[function(require,module,exports){
 
 module.exports = function(id) {
   var elem = document.getElementById(id);
