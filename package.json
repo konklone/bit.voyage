@@ -14,8 +14,8 @@
   "homepage": "https://github.com/konklone/bit-voyage",
 
   "dependencies": {
-    "filereader-stream": "git://github.com/konklone/filereader-stream.git#backpressure",
-    "s3-upload-stream": "*",
+    "filereader-stream": "/home/eric/bulk/filereader-stream",
+    "s3-upload-stream": "/home/eric/bulk/s3-upload-stream",
     "aws-sdk": "*"
   },
 

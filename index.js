@@ -4,17 +4,53 @@ var filelog = require("log.js")("file-log");
 var awslog = require("log.js")("aws-log");
 var echo = require("echo.js");
 
+// default permalink
+var updateLink = function(link) {
+  var perm = document.getElementById("permalink");
+  perm.innerHTML = link;
+  perm.href = link;
+  return false;
+}
+
+updateLink(window.location);
+
 // basic file streaming, thank you @maxogden
-var createReadStream = require('filereader-stream');
+var FileReaderStream = require('filereader-stream');
 
 // s3-upload-stream + AWS SDK
 var s3Stream = require('s3-upload-stream');
-var AWS = require("aws-sdk"); // frozen
+var AWS = require("aws-sdk");
 AWS.config.update({
   accessKeyId: params.key,
   secretAccessKey: params.secret_key
 });
 s3Stream.client(new AWS.S3());
+
+// instantiated streams
+var fstream;
+var upload;
+
+// file pause/resume - useful for debugging
+document.getElementById("file-pause").onclick = function() {
+  if (fstream) fstream.pause();
+  return false;
+};
+
+document.getElementById("file-resume").onclick = function() {
+  if (stream) fstream.resume();
+  return false;
+};
+
+// S3 pause/resume - the user's pause/resume
+document.getElementById("upload-pause").onclick = function() {
+  if (upload) upload.pause();
+  return false;
+};
+
+document.getElementById("upload-resume").onclick = function() {
+  if (upload) upload.resume();
+  return false;
+};
 
 // counter of MBs
 var MBs = 5;
@@ -47,23 +83,25 @@ var uploadFile = function(file) {
   * Create the file reading stream.
   **/
 
-  var fstream = createReadStream(file, {
+  fstream = FileReaderStream(file, {
     output: "binary",
     chunkSize: (1 * 1024 * 1024)
   });
 
   fstream.on('progress', printMegabytes);
+  // fstream.on('progress', console.log); // heavy!
 
   fstream.on('pause', function(offset) {
-    console.log("filereader-stream has PAUSED at " + offset);
+    console.log("filereader-stream: PAUSE at " + offset);
   });
 
   fstream.on('resume', function(offset) {
-    console.log("filereader-stream has RESUMED at " + offset);
+    console.log("filereader-stream: RESUME at " + offset);
   });
 
   fstream.on('end', function(size) {
     filelog("Done: " + size);
+    console.log("filereader-stream: END at " + size);
   });
 
   fstream.on('error', function(err, data) {
@@ -76,7 +114,7 @@ var uploadFile = function(file) {
   /**
   * Create the upload stream.
   **/
-  var upload = new s3Stream.upload({
+  upload = new s3Stream.upload({
     "Bucket": params.bucket,
     "Key": file.name,
     "ContentType": file.type,
@@ -104,12 +142,38 @@ var uploadFile = function(file) {
 
   upload.on('part', function(data) {
     awslog("Part " + data.PartNumber + ": " + data.ETag);
+    console.log("s3-upload-stream: PART " + data.PartNumber);
   });
 
   upload.on('uploaded', function(data) {
-    awslog("Done! <a href=\"" + data.Location + "\">" + data.Location + "</a>");
-  })
+    awslog("Done! " +
+      "<a href=\"" + data.Location + "\">" +
+        data.Location +
+      "</a>"
+    );
+    console.log("s3-upload-stream: UPLOADED.");
+  });
 
+  upload.on('error', function(err) {
+    awslog("Error uploading file: " + err);
+    console.log("s3-upload-stream: ERROR, " + err);
+  });
+
+  upload.on('ready', function(uploadId) {
+    console.log("s3-upload-stream: READY, upload ID created.");
+  });
+
+  upload.on('pausing', function(pending) {
+    console.log("s3-upload-stream: PAUSING, " + pending + " parts in the air.")
+  });
+
+  upload.on('paused', function(data) {
+    console.log("s3-upload-stream: PAUSED. uploadId: " + data.UploadId + ", parts: " + data.Parts.length);
+  });
+
+  upload.on('resume', function() {
+    console.log("s3-upload-stream: RESUMED.");
+  });
 
   // debugging, will hold chunks for X ms and echo length
   // fstream.pipe(echo(1000));
@@ -120,5 +184,5 @@ var uploadFile = function(file) {
 };
 
 
-drop(document.body, function(files) {uploadFile(files[0]);});
+drop(document.body, function(files) {if (files[0]) uploadFile(files[0]);});
 console.log("Drop target armed.")

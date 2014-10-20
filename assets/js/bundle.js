@@ -10543,7 +10543,7 @@ function serializeMember(name, value, rules, fn) {
 module.exports = QueryParamSerializer;
 
 },{"../util":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/region_config.json":[function(require,module,exports){
-module.exports=[
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=[
   {
     "regions": ["*"],
     "serviceConfigs": [
@@ -15512,9 +15512,9 @@ FileStream.prototype._FileReader = function() {
     if (data instanceof ArrayBuffer)
       data = new Buffer(new Uint8Array(event.target.result))
 
-    var ok = self.dest.write(data);
+    var ok = self.dest.write(data)
     if (!ok) {
-      self.pause();
+      self.pause()
       self.dest.once("drain", self.resume.bind(self))
     }
 
@@ -15628,20 +15628,29 @@ module.exports = {
   },
 
   // Generate a writeable stream which uploads to a file on S3.
-  upload: function (destinationDetails) {
+  upload: function (destinationDetails, sessionDetails) {
     var e = new events.EventEmitter();
 
-    // Create the writeable stream interface.
+    if (!sessionDetails) sessionDetails = {};
+
+    // Create the writable stream interface.
     var ws = new Writable({
       highWaterMark: 4194304 // 4 MB
     });
 
-    // Data pertaining to the overall upload
-    var multipartUploadID;
-    var partNumber = 1;
-    var partIds = [];
+    // Data pertaining to the overall upload.
+    // If resumable parts are passed in, they must be free of gaps.
+    var multipartUploadID = sessionDetails.UploadId;
+    var partNumber = sessionDetails.Parts ? (sessionDetails.Parts.length + 1) : 1;
+    var partIds = sessionDetails.Parts || [];
     var receivedSize = 0;
     var uploadedSize = 0;
+
+    // Light state management -
+    //   started: used to fire 'ready' even on a quick resume
+    //   paused:  used to govern manual pause/resume
+    var started = false;
+    var paused = false;
 
     // Parts which need to be uploaded to S3.
     var pendingParts = 0;
@@ -15682,21 +15691,83 @@ module.exports = {
 
     // Handler to receive data and upload it to S3.
     ws._write = function (incomingBuffer, enc, next) {
-      absorbBuffer(incomingBuffer);
 
-      if (receivedBuffersLength < partSizeThreshold)
-        return next(); // Ready to receive more data in _write.
+      // Pause/resume check #1 out of 2:
+      //   Block incoming writes immediately on pause.
+      if (paused)
+        e.once('resume', write);
+      else
+        write();
 
-      // We need to upload some data
-      uploadHandler(next);
+      function write() {
+        absorbBuffer(incomingBuffer);
+
+        if (receivedBuffersLength < partSizeThreshold)
+          return next(); // Ready to receive more data in _write.
+
+        // We need to upload some data
+        uploadHandler(next);
+      }
     };
 
-    // Concurrenly upload parts to S3.
+    // Ask the stream to pause - will allow existing
+    // part uploads to complete first.
+    ws.pause = function () {
+      // if already mid-pause, this does nothing
+      if (paused) return false;
+
+      // if there's no active upload, this does nothing
+      if (!started) return false;
+
+      paused = true;
+      // give caller how many parts are mid-upload
+      ws.emit('pausing', pendingParts);
+
+      // if there are no parts outstanding, declare the stream
+      // paused and return currently sent part details.
+      if (pendingParts == 0)
+        notifyPaused();
+
+      // otherwise, the 'paused' event will get sent once the
+      // last part finishes uploading.
+
+      return true;
+    };
+
+    // Lift the pause, and re-kick off the uploading.
+    ws.resume = function () {
+      // if we're not paused, this does nothing
+      if (!paused) return false;
+
+      paused = false;
+      e.emit('resume'); // internal event
+      ws.emit('resume'); // external event
+
+      return true;
+    };
+
+    var notifyPaused = function () {
+      ws.emit('paused', {
+        UploadId: multipartUploadID,
+        Parts: partIds
+      });
+    };
+
+    // Concurrently upload parts to S3.
     var uploadHandler = function (next) {
+
+      // If this is the first part, and we're just starting,
+      // but we have a multipartUploadID, then we're beginning
+      // a resume and can fire the 'ready' event externally.
+      if (multipartUploadID && !started)
+        ws.emit('ready', multipartUploadID);
+
+      started = true;
+
       if (pendingParts < concurrentPartThreshold) {
         // Has the MPU been created yet?
         if (multipartUploadID)
-          upload(); // Upload the part immeadiately.
+          upload(); // Upload the part immediately.
         else {
           e.once('ready', upload); // Wait until multipart upload is initialized.
           createMultipartUpload();
@@ -15709,13 +15780,28 @@ module.exports = {
       }
 
       function upload() {
-        pendingParts++;
-        flushPart(function (partDetails) {
-          --pendingParts;
-          e.emit('part'); // Internal event
-          ws.emit('part', partDetails); // External event
-        });
-        next();
+
+        // Pause/resume check #2 out of 2:
+        //   Block queued up parts until resumption.
+        if (paused)
+          e.once('resume', uploadNow);
+        else
+          uploadNow();
+
+        function uploadNow() {
+          pendingParts++;
+          flushPart(function (partDetails) {
+            --pendingParts;
+            e.emit('part'); // Internal event
+            ws.emit('part', partDetails); // External event
+
+            // if we're paused and this was the last outstanding part,
+            // we can notify the caller that we're really paused now.
+            if (paused && pendingParts == 0)
+              notifyPaused();
+          });
+          next();
+        }
       }
     };
 
@@ -15820,7 +15906,7 @@ module.exports = {
     // Turn all the individual parts we uploaded to S3 into a finalized upload.
     var completeUpload = function () {
       // There is a possibility that the incoming stream was empty, therefore the MPU never started
-      // and can not be finalized.
+      // and cannot be finalized.
       if (multipartUploadID) {
         cachedClient.completeMultipartUpload(
           {
@@ -15835,9 +15921,10 @@ module.exports = {
             if (err)
               abortUpload('Failed to complete the multipart upload on S3: ' + JSON.stringify(err));
             else {
-              // Emit both events for backwards compatability, and to follow the spec.
+              // Emit both events for backwards compatibility, and to follow the spec.
               ws.emit('uploaded', result);
               ws.emit('finish', result);
+              started = false;
             }
           }
         );
@@ -15869,7 +15956,7 @@ module.exports = {
             ws.emit('error', 'Failed to create a multipart upload on S3: ' + JSON.stringify(err));
           else {
             multipartUploadID = data.UploadId;
-            ws.emit('ready');
+            ws.emit('ready', multipartUploadID);
             e.emit('ready'); // Internal event
           }
         }
