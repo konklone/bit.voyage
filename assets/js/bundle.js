@@ -10543,7 +10543,7 @@ function serializeMember(name, value, rules, fn) {
 module.exports = QueryParamSerializer;
 
 },{"../util":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/region_config.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=[
+module.exports=module.exports=module.exports=[
   {
     "regions": ["*"],
     "serviceConfigs": [
@@ -15328,7 +15328,385 @@ function inherits (c, p, proto) {
 //inherits(Child, Parent)
 //new Child
 
-},{}],"aws-sdk":[function(require,module,exports){
+},{}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/index.js":[function(require,module,exports){
+// Load modules
+
+var Stringify = require('./stringify');
+var Parse = require('./parse');
+
+
+// Declare internals
+
+var internals = {};
+
+
+module.exports = {
+    stringify: Stringify,
+    parse: Parse
+};
+
+},{"./parse":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/parse.js","./stringify":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/stringify.js"}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/parse.js":[function(require,module,exports){
+// Load modules
+
+var Utils = require('./utils');
+
+
+// Declare internals
+
+var internals = {
+    delimiter: '&',
+    depth: 5,
+    arrayLimit: 20,
+    parameterLimit: 1000
+};
+
+
+internals.parseValues = function (str, options) {
+
+    var obj = {};
+    var parts = str.split(options.delimiter, options.parameterLimit === Infinity ? undefined : options.parameterLimit);
+
+    for (var i = 0, il = parts.length; i < il; ++i) {
+        var part = parts[i];
+        var pos = part.indexOf(']=') === -1 ? part.indexOf('=') : part.indexOf(']=') + 1;
+
+        if (pos === -1) {
+            obj[Utils.decode(part)] = '';
+        }
+        else {
+            var key = Utils.decode(part.slice(0, pos));
+            var val = Utils.decode(part.slice(pos + 1));
+
+            if (!obj.hasOwnProperty(key)) {
+                obj[key] = val;
+            }
+            else {
+                obj[key] = [].concat(obj[key]).concat(val);
+            }
+        }
+    }
+
+    return obj;
+};
+
+
+internals.parseObject = function (chain, val, options) {
+
+    if (!chain.length) {
+        return val;
+    }
+
+    var root = chain.shift();
+
+    var obj = {};
+    if (root === '[]') {
+        obj = [];
+        obj = obj.concat(internals.parseObject(chain, val, options));
+    }
+    else {
+        var cleanRoot = root[0] === '[' && root[root.length - 1] === ']' ? root.slice(1, root.length - 1) : root;
+        var index = parseInt(cleanRoot, 10);
+        var indexString = '' + index;
+        if (!isNaN(index) &&
+            root !== cleanRoot &&
+            indexString === cleanRoot &&
+            index <= options.arrayLimit) {
+
+            obj = [];
+            obj[index] = internals.parseObject(chain, val, options);
+        }
+        else {
+            obj[cleanRoot] = internals.parseObject(chain, val, options);
+        }
+    }
+
+    return obj;
+};
+
+
+internals.parseKeys = function (key, val, options) {
+
+    if (!key) {
+        return;
+    }
+
+    // The regex chunks
+
+    var parent = /^([^\[\]]*)/;
+    var child = /(\[[^\[\]]*\])/g;
+
+    // Get the parent
+
+    var segment = parent.exec(key);
+
+    // Don't allow them to overwrite object prototype properties
+
+    if (Object.prototype.hasOwnProperty(segment[1])) {
+        return;
+    }
+
+    // Stash the parent if it exists
+
+    var keys = [];
+    if (segment[1]) {
+        keys.push(segment[1]);
+    }
+
+    // Loop through children appending to the array until we hit depth
+
+    var i = 0;
+    while ((segment = child.exec(key)) !== null && i < options.depth) {
+
+        ++i;
+        if (!Object.prototype.hasOwnProperty(segment[1].replace(/\[|\]/g, ''))) {
+            keys.push(segment[1]);
+        }
+    }
+
+    // If there's a remainder, just add whatever is left
+
+    if (segment) {
+        keys.push('[' + key.slice(segment.index) + ']');
+    }
+
+    return internals.parseObject(keys, val, options);
+};
+
+
+module.exports = function (str, options) {
+
+    if (str === '' ||
+        str === null ||
+        typeof str === 'undefined') {
+
+        return {};
+    }
+
+    options = options || {};
+    options.delimiter = typeof options.delimiter === 'string' || Utils.isRegExp(options.delimiter) ? options.delimiter : internals.delimiter;
+    options.depth = typeof options.depth === 'number' ? options.depth : internals.depth;
+    options.arrayLimit = typeof options.arrayLimit === 'number' ? options.arrayLimit : internals.arrayLimit;
+    options.parameterLimit = typeof options.parameterLimit === 'number' ? options.parameterLimit : internals.parameterLimit;
+
+    var tempObj = typeof str === 'string' ? internals.parseValues(str, options) : str;
+    var obj = {};
+
+    // Iterate over the keys and setup the new object
+
+    var keys = Object.keys(tempObj);
+    for (var i = 0, il = keys.length; i < il; ++i) {
+        var key = keys[i];
+        var newObj = internals.parseKeys(key, tempObj[key], options);
+        obj = Utils.merge(obj, newObj);
+    }
+
+    return Utils.compact(obj);
+};
+
+},{"./utils":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/utils.js"}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/stringify.js":[function(require,module,exports){
+// Load modules
+
+var Utils = require('./utils');
+
+
+// Declare internals
+
+var internals = {
+    delimiter: '&'
+};
+
+
+internals.stringify = function (obj, prefix) {
+
+    if (Utils.isBuffer(obj)) {
+        obj = obj.toString();
+    }
+    else if (obj instanceof Date) {
+        obj = obj.toISOString();
+    }
+    else if (obj === null) {
+        obj = '';
+    }
+
+    if (typeof obj === 'string' ||
+        typeof obj === 'number' ||
+        typeof obj === 'boolean') {
+
+        return [encodeURIComponent(prefix) + '=' + encodeURIComponent(obj)];
+    }
+
+    var values = [];
+
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            values = values.concat(internals.stringify(obj[key], prefix + '[' + key + ']'));
+        }
+    }
+
+    return values;
+};
+
+
+module.exports = function (obj, options) {
+
+    options = options || {};
+    var delimiter = typeof options.delimiter === 'undefined' ? internals.delimiter : options.delimiter;
+
+    var keys = [];
+
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            keys = keys.concat(internals.stringify(obj[key], key));
+        }
+    }
+
+    return keys.join(delimiter);
+};
+
+},{"./utils":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/utils.js"}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/utils.js":[function(require,module,exports){
+(function (Buffer){
+// Load modules
+
+
+// Declare internals
+
+var internals = {};
+
+
+exports.arrayToObject = function (source) {
+
+    var obj = {};
+    for (var i = 0, il = source.length; i < il; ++i) {
+        if (typeof source[i] !== 'undefined') {
+
+            obj[i] = source[i];
+        }
+    }
+
+    return obj;
+};
+
+
+exports.merge = function (target, source) {
+
+    if (!source) {
+        return target;
+    }
+
+    if (Array.isArray(source)) {
+        for (var i = 0, il = source.length; i < il; ++i) {
+            if (typeof source[i] !== 'undefined') {
+                if (typeof target[i] === 'object') {
+                    target[i] = exports.merge(target[i], source[i]);
+                }
+                else {
+                    target[i] = source[i];
+                }
+            }
+        }
+
+        return target;
+    }
+
+    if (Array.isArray(target)) {
+        if (typeof source !== 'object') {
+            target.push(source);
+            return target;
+        }
+        else {
+            target = exports.arrayToObject(target);
+        }
+    }
+
+    var keys = Object.keys(source);
+    for (var k = 0, kl = keys.length; k < kl; ++k) {
+        var key = keys[k];
+        var value = source[key];
+
+        if (value &&
+            typeof value === 'object') {
+
+            if (!target[key]) {
+                target[key] = value;
+            }
+            else {
+                target[key] = exports.merge(target[key], value);
+            }
+        }
+        else {
+            target[key] = value;
+        }
+    }
+
+    return target;
+};
+
+
+exports.decode = function (str) {
+
+    try {
+        return decodeURIComponent(str.replace(/\+/g, ' '));
+    } catch (e) {
+        return str;
+    }
+};
+
+
+exports.compact = function (obj, refs) {
+
+    if (typeof obj !== 'object' ||
+        obj === null) {
+
+        return obj;
+    }
+
+    refs = refs || [];
+    var lookup = refs.indexOf(obj);
+    if (lookup !== -1) {
+        return refs[lookup];
+    }
+
+    refs.push(obj);
+
+    if (Array.isArray(obj)) {
+        var compacted = [];
+
+        for (var i = 0, l = obj.length; i < l; ++i) {
+            if (typeof obj[i] !== 'undefined') {
+                compacted.push(obj[i]);
+            }
+        }
+
+        return compacted;
+    }
+
+    var keys = Object.keys(obj);
+    for (var i = 0, il = keys.length; i < il; ++i) {
+        var key = keys[i];
+        obj[key] = exports.compact(obj[key], refs);
+    }
+
+    return obj;
+};
+
+
+exports.isRegExp = function (obj) {
+    return Object.prototype.toString.call(obj) === '[object RegExp]';
+};
+
+
+exports.isBuffer = function (obj) {
+
+    if (typeof Buffer !== 'undefined') {
+        return Buffer.isBuffer(obj);
+    }
+    else {
+        return false;
+    }
+};
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"aws-sdk":[function(require,module,exports){
 // AWS SDK for JavaScript v2.0.21
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // License at https://sdk.amazonaws.com/js/BUNDLE_LICENSE.txt
@@ -15476,7 +15854,90 @@ var createEcho = function(delay) {
 
 module.exports = createEcho;
 
-},{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"filereader-stream":[function(require,module,exports){
+},{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"extend":[function(require,module,exports){
+var hasOwn = Object.prototype.hasOwnProperty;
+var toString = Object.prototype.toString;
+var undefined;
+
+var isPlainObject = function isPlainObject(obj) {
+	'use strict';
+	if (!obj || toString.call(obj) !== '[object Object]') {
+		return false;
+	}
+
+	var has_own_constructor = hasOwn.call(obj, 'constructor');
+	var has_is_property_of_method = obj.constructor && obj.constructor.prototype && hasOwn.call(obj.constructor.prototype, 'isPrototypeOf');
+	// Not own constructor property must be Object
+	if (obj.constructor && !has_own_constructor && !has_is_property_of_method) {
+		return false;
+	}
+
+	// Own properties are enumerated firstly, so to speed up,
+	// if last one is own, then all properties are own.
+	var key;
+	for (key in obj) {}
+
+	return key === undefined || hasOwn.call(obj, key);
+};
+
+module.exports = function extend() {
+	'use strict';
+	var options, name, src, copy, copyIsArray, clone,
+		target = arguments[0],
+		i = 1,
+		length = arguments.length,
+		deep = false;
+
+	// Handle a deep copy situation
+	if (typeof target === 'boolean') {
+		deep = target;
+		target = arguments[1] || {};
+		// skip the boolean and the target
+		i = 2;
+	} else if ((typeof target !== 'object' && typeof target !== 'function') || target == null) {
+		target = {};
+	}
+
+	for (; i < length; ++i) {
+		options = arguments[i];
+		// Only deal with non-null/undefined values
+		if (options != null) {
+			// Extend the base object
+			for (name in options) {
+				src = target[name];
+				copy = options[name];
+
+				// Prevent never-ending loop
+				if (target === copy) {
+					continue;
+				}
+
+				// Recurse if we're merging plain objects or arrays
+				if (deep && copy && (isPlainObject(copy) || (copyIsArray = Array.isArray(copy)))) {
+					if (copyIsArray) {
+						copyIsArray = false;
+						clone = src && Array.isArray(src) ? src : [];
+					} else {
+						clone = src && isPlainObject(src) ? src : {};
+					}
+
+					// Never move original objects, clone them
+					target[name] = extend(deep, clone, copy);
+
+				// Don't bring in undefined values
+				} else if (copy !== undefined) {
+					target[name] = copy;
+				}
+			}
+		}
+	}
+
+	// Return the modified object
+	return target;
+};
+
+
+},{}],"filereader-stream":[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var EventEmitter = require('events').EventEmitter
@@ -15594,27 +16055,10 @@ module.exports = function(id) {
   }
 }
 
-},{}],"params.js":[function(require,module,exports){
-/**
-  Taken from https://github.com/mapbox/frameup/blob/master/index.html
-  released by Mapbox under an ISC license
-**/
+},{}],"qs":[function(require,module,exports){
+module.exports = require('./lib');
 
-// Parse an encoded params string and set params from it.
-var params = {};
-function setParams(encoded) {
-  var pairs = encoded.split('&');
-  for (var i = 0; i < pairs.length; i++) {
-    var key = pairs[i].substr(0, pairs[i].indexOf('='));
-    var val = pairs[i].substr(pairs[i].indexOf('=') + 1);
-    params[key] = val;
-  }
-};
-if (location.hash) setParams(location.hash.replace('#', ''));
-
-module.exports = params;
-
-},{}],"s3-upload-stream":[function(require,module,exports){
+},{"./lib":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/index.js"}],"s3-upload-stream":[function(require,module,exports){
 (function (Buffer){
 var Writable = require('stream').Writable,
     events = require("events");
@@ -15746,10 +16190,12 @@ module.exports = {
       return true;
     };
 
+    // when pausing, return relevant pause state to client
     var notifyPaused = function () {
       ws.emit('paused', {
         UploadId: multipartUploadID,
-        Parts: partIds
+        Parts: partIds,
+        Uploaded: uploadedSize
       });
     };
 

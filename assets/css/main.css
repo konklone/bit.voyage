@@ -17,7 +17,10 @@ section.drop-here {
 section h3 {
   font-weight: bold; font-size: 12pt;
   margin: 0; padding: 0; padding-top: 10px; padding-left: 10px;
-}
+} section h3 span {font-weight: normal;}
+
+section.log.file {display: none;}
+
 section.log p {
   padding: 0 10px;
   height: 55px; overflow-y: scroll;

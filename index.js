@@ -1,18 +1,27 @@
 var drop = require("drop.js");
-var params = require("params.js");
+var Qs = require("qs");
 var filelog = require("log.js")("file-log");
 var awslog = require("log.js")("aws-log");
 var echo = require("echo.js");
 
+// initial load of parameters
+var qs = location.hash ? location.hash.replace("#", "") : null;
+var params = Qs.parse(qs);
+if (params.offset) params.offset = parseInt(params.offset);
+var originalOffset = params.offset || 0;
+
 // default permalink
-var updateLink = function(link) {
+var updateLink = function(params) {
+  var link = window.location.protocol + "//" + window.location.host + "/#" + Qs.stringify(params);
+
   var perm = document.getElementById("permalink");
   perm.innerHTML = link;
   perm.href = link;
+
+  window.location = link;
+
   return false;
 }
-
-updateLink(window.location);
 
 // basic file streaming, thank you @maxogden
 var FileReaderStream = require('filereader-stream');
@@ -25,6 +34,14 @@ AWS.config.update({
   secretAccessKey: params.secret_key
 });
 s3Stream.client(new AWS.S3());
+
+var session = {};
+if (params.UploadId) {
+  session.UploadId = params.UploadId;
+  session.Parts = params.Parts;
+
+  awslog("Drop " + params.filename + " to resume your download.")
+};
 
 // instantiated streams
 var fstream;
@@ -59,7 +76,7 @@ var next = 1;
 var printMegabytes = function(progress) {
   if (progress > (next * (MBs * MB))) {
     var current = parseInt(progress / (MBs * MB)) * MBs;
-    filelog("MBs: " + current);
+    console.log("filereader-stream: MBs: " + current);
     next = parseInt((current + MBs) / MBs);
   }
 }
@@ -85,11 +102,12 @@ var uploadFile = function(file) {
 
   fstream = FileReaderStream(file, {
     output: "binary",
-    chunkSize: (1 * 1024 * 1024)
+    chunkSize: (1 * 1024 * 1024),
+    offset: params.offset
   });
 
   fstream.on('progress', printMegabytes);
-  // fstream.on('progress', console.log); // heavy!
+  // fstream.on('progress', function(msg) {console.log(msg)}); // heavy!
 
   fstream.on('pause', function(offset) {
     console.log("filereader-stream: PAUSE at " + offset);
@@ -109,17 +127,19 @@ var uploadFile = function(file) {
   })
 
   filelog(file.name +  ": embarking on a " + file.size + "-byte voyage.");
+  params.filename = file.name;
 
 
   /**
   * Create the upload stream.
   **/
+
   upload = new s3Stream.upload({
     "Bucket": params.bucket,
     "Key": file.name,
     "ContentType": file.type,
     "ACL": "public-read"
-  });
+  }, session);
 
   upload.on('error', function(err, data) {
     console.log(err);
@@ -151,6 +171,15 @@ var uploadFile = function(file) {
         data.Location +
       "</a>"
     );
+
+    // clean up session details from params
+    delete params.UploadId;
+    delete params.Parts;
+    delete params.filename;
+    delete params.offset;
+
+    updateLink(params);
+
     console.log("s3-upload-stream: UPLOADED.");
   });
 
@@ -168,7 +197,16 @@ var uploadFile = function(file) {
   });
 
   upload.on('paused', function(data) {
-    console.log("s3-upload-stream: PAUSED. uploadId: " + data.UploadId + ", parts: " + data.Parts.length);
+    console.log("s3-upload-stream: PAUSED. uploadId: " + data.UploadId + ", parts: " + data.Parts.length + ", uploaded: " + data.Uploaded);
+
+    // the Uploaded value will be relative to the creation of this stream
+    // instance, so needs to be based off offset from before the stream
+    // instance was created.
+    params.offset = originalOffset + data.Uploaded;
+    params.UploadId = data.UploadId;
+    params.Parts = data.Parts;
+
+    updateLink(params);
   });
 
   upload.on('resume', function() {
@@ -183,6 +221,8 @@ var uploadFile = function(file) {
 
 };
 
+// initialize permalink to window.location
+updateLink(params);
 
 drop(document.body, function(files) {if (files[0]) uploadFile(files[0]);});
 console.log("Drop target armed.")
