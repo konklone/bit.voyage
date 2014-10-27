@@ -14,14 +14,15 @@
   "homepage": "https://github.com/konklone/bit-voyage",
 
   "dependencies": {
-    "filereader-stream": "git://github.com/konklone/filereader-stream.git#backpressure",
-    "s3-upload-stream": "*",
-    "aws-sdk": "*"
+    "filereader-stream": "/home/eric/bulk/filereader-stream",
+    "s3-upload-stream": "/home/eric/bulk/s3-upload-stream",
+    "aws-sdk": "*",
+    "qs": "*"
   },
 
   "main": "index.js",
   "scripts": {
-    "compile": "browserify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream > assets/js/bundle.js",
-    "watch": "watchify -r ./assets/js/echo.js:echo.js -r filereader-stream -r ./assets/js/params.js:params.js -r aws-sdk -r ./assets/js/drop.js:drop.js -r ./assets/js/log.js:log.js -r s3-upload-stream -o assets/js/bundle.js"
+    "compile": "browserify -r ./assets/js/utils.js -r filereader-stream -r qs -r aws-sdk -r ./assets/js/drop.js -r s3-upload-stream > assets/js/bundle.js",
+    "watch": "watchify -r ./assets/js/utils.js -r filereader-stream -r qs -r aws-sdk -r ./assets/js/drop.js -r s3-upload-stream -o assets/js/bundle.js"
   }
 }

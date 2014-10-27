@@ -1,4 +1,115 @@
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js":[function(require,module,exports){
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./assets/js/drop.js":[function(require,module,exports){
+/**
+  basic drag and drop event-ery
+  adapted from https://github.com/mikolalysenko/drag-and-drop-files
+  so this is under an MIT license
+**/
+
+function handleDrop(callback, event) {
+  event.stopPropagation();
+  event.preventDefault();
+  hideTarget();
+  // console.log("drop!")
+  callback(Array.prototype.slice.call(event.dataTransfer.files))
+}
+
+// indicate it's active
+function onDragEnter(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  showTarget();
+  // console.log("enter!")
+  return false;
+}
+
+function onDragLeave(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  // hideTarget();
+  // console.log("leave!")
+  return false;
+}
+
+// don't do anything while dragging
+function onDragOver(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  // showTarget();
+  // console.log("over!")
+  return false;
+}
+
+var showTarget = function() {
+  document.getElementById("dragging").style.display = "block";
+};
+
+var hideTarget = function() {
+  document.getElementById("dragging").style.display = "none";
+};
+
+// set up callbacks on element
+function drop(element, callback, enter, over) {
+  element.addEventListener("dragenter", onDragEnter, false);
+  element.addEventListener("dragleave", onDragLeave, false);
+  element.addEventListener("dragover", onDragOver, false);
+  element.addEventListener("drop", handleDrop.bind(undefined, callback), false);
+}
+
+module.exports = drop;
+
+},{}],"./assets/js/utils.js":[function(require,module,exports){
+var Writable = require('stream').Writable;
+
+module.exports = {
+
+  echo: function(delay) {
+    var echoStream = new Writable({
+      highWaterMark: 4194304
+    });
+
+    echoStream._write = function (chunk, encoding, next) {
+      console.log("chunk received. " + chunk.length);
+      setTimeout(next, delay);
+    };
+
+    return echoStream;
+  },
+
+  display: function(bytes) {
+    if (bytes > 1e9)
+      return (bytes / 1e9).toFixed(2) + 'GB';
+    else if (bytes > 1e6)
+      return (bytes / 1e6).toFixed(2) + 'MB';
+    else
+      return (bytes / 1e3).toFixed(2) + 'KB';
+  },
+
+  // counter of MBs
+  mbCounter: function() {
+    var MBs = 5;
+    var MB = 1000 * 1000;
+    var next = 1;
+    return function(progress) {
+      if (progress > (next * (MBs * MB))) {
+        var current = parseInt(progress / (MBs * MB)) * MBs;
+        console.log("filereader-stream: MBs: " + current);
+        next = parseInt((current + MBs) / MBs);
+      }
+    }
+  },
+
+  log: function(id) {
+    var elem = document.getElementById(id);
+
+    return function(msg) {
+      elem.innerHTML += (msg + "<br/>");
+      elem.scrollTop = elem.scrollHeight;
+    }
+  }
+
+};
+
+},{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js":[function(require,module,exports){
 
 },{}],"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js":[function(require,module,exports){
 /*!
@@ -15328,7 +15439,385 @@ function inherits (c, p, proto) {
 //inherits(Child, Parent)
 //new Child
 
-},{}],"aws-sdk":[function(require,module,exports){
+},{}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/index.js":[function(require,module,exports){
+// Load modules
+
+var Stringify = require('./stringify');
+var Parse = require('./parse');
+
+
+// Declare internals
+
+var internals = {};
+
+
+module.exports = {
+    stringify: Stringify,
+    parse: Parse
+};
+
+},{"./parse":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/parse.js","./stringify":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/stringify.js"}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/parse.js":[function(require,module,exports){
+// Load modules
+
+var Utils = require('./utils');
+
+
+// Declare internals
+
+var internals = {
+    delimiter: '&',
+    depth: 5,
+    arrayLimit: 20,
+    parameterLimit: 1000
+};
+
+
+internals.parseValues = function (str, options) {
+
+    var obj = {};
+    var parts = str.split(options.delimiter, options.parameterLimit === Infinity ? undefined : options.parameterLimit);
+
+    for (var i = 0, il = parts.length; i < il; ++i) {
+        var part = parts[i];
+        var pos = part.indexOf(']=') === -1 ? part.indexOf('=') : part.indexOf(']=') + 1;
+
+        if (pos === -1) {
+            obj[Utils.decode(part)] = '';
+        }
+        else {
+            var key = Utils.decode(part.slice(0, pos));
+            var val = Utils.decode(part.slice(pos + 1));
+
+            if (!obj.hasOwnProperty(key)) {
+                obj[key] = val;
+            }
+            else {
+                obj[key] = [].concat(obj[key]).concat(val);
+            }
+        }
+    }
+
+    return obj;
+};
+
+
+internals.parseObject = function (chain, val, options) {
+
+    if (!chain.length) {
+        return val;
+    }
+
+    var root = chain.shift();
+
+    var obj = {};
+    if (root === '[]') {
+        obj = [];
+        obj = obj.concat(internals.parseObject(chain, val, options));
+    }
+    else {
+        var cleanRoot = root[0] === '[' && root[root.length - 1] === ']' ? root.slice(1, root.length - 1) : root;
+        var index = parseInt(cleanRoot, 10);
+        var indexString = '' + index;
+        if (!isNaN(index) &&
+            root !== cleanRoot &&
+            indexString === cleanRoot &&
+            index <= options.arrayLimit) {
+
+            obj = [];
+            obj[index] = internals.parseObject(chain, val, options);
+        }
+        else {
+            obj[cleanRoot] = internals.parseObject(chain, val, options);
+        }
+    }
+
+    return obj;
+};
+
+
+internals.parseKeys = function (key, val, options) {
+
+    if (!key) {
+        return;
+    }
+
+    // The regex chunks
+
+    var parent = /^([^\[\]]*)/;
+    var child = /(\[[^\[\]]*\])/g;
+
+    // Get the parent
+
+    var segment = parent.exec(key);
+
+    // Don't allow them to overwrite object prototype properties
+
+    if (Object.prototype.hasOwnProperty(segment[1])) {
+        return;
+    }
+
+    // Stash the parent if it exists
+
+    var keys = [];
+    if (segment[1]) {
+        keys.push(segment[1]);
+    }
+
+    // Loop through children appending to the array until we hit depth
+
+    var i = 0;
+    while ((segment = child.exec(key)) !== null && i < options.depth) {
+
+        ++i;
+        if (!Object.prototype.hasOwnProperty(segment[1].replace(/\[|\]/g, ''))) {
+            keys.push(segment[1]);
+        }
+    }
+
+    // If there's a remainder, just add whatever is left
+
+    if (segment) {
+        keys.push('[' + key.slice(segment.index) + ']');
+    }
+
+    return internals.parseObject(keys, val, options);
+};
+
+
+module.exports = function (str, options) {
+
+    if (str === '' ||
+        str === null ||
+        typeof str === 'undefined') {
+
+        return {};
+    }
+
+    options = options || {};
+    options.delimiter = typeof options.delimiter === 'string' || Utils.isRegExp(options.delimiter) ? options.delimiter : internals.delimiter;
+    options.depth = typeof options.depth === 'number' ? options.depth : internals.depth;
+    options.arrayLimit = typeof options.arrayLimit === 'number' ? options.arrayLimit : internals.arrayLimit;
+    options.parameterLimit = typeof options.parameterLimit === 'number' ? options.parameterLimit : internals.parameterLimit;
+
+    var tempObj = typeof str === 'string' ? internals.parseValues(str, options) : str;
+    var obj = {};
+
+    // Iterate over the keys and setup the new object
+
+    var keys = Object.keys(tempObj);
+    for (var i = 0, il = keys.length; i < il; ++i) {
+        var key = keys[i];
+        var newObj = internals.parseKeys(key, tempObj[key], options);
+        obj = Utils.merge(obj, newObj);
+    }
+
+    return Utils.compact(obj);
+};
+
+},{"./utils":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/utils.js"}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/stringify.js":[function(require,module,exports){
+// Load modules
+
+var Utils = require('./utils');
+
+
+// Declare internals
+
+var internals = {
+    delimiter: '&'
+};
+
+
+internals.stringify = function (obj, prefix) {
+
+    if (Utils.isBuffer(obj)) {
+        obj = obj.toString();
+    }
+    else if (obj instanceof Date) {
+        obj = obj.toISOString();
+    }
+    else if (obj === null) {
+        obj = '';
+    }
+
+    if (typeof obj === 'string' ||
+        typeof obj === 'number' ||
+        typeof obj === 'boolean') {
+
+        return [encodeURIComponent(prefix) + '=' + encodeURIComponent(obj)];
+    }
+
+    var values = [];
+
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            values = values.concat(internals.stringify(obj[key], prefix + '[' + key + ']'));
+        }
+    }
+
+    return values;
+};
+
+
+module.exports = function (obj, options) {
+
+    options = options || {};
+    var delimiter = typeof options.delimiter === 'undefined' ? internals.delimiter : options.delimiter;
+
+    var keys = [];
+
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            keys = keys.concat(internals.stringify(obj[key], key));
+        }
+    }
+
+    return keys.join(delimiter);
+};
+
+},{"./utils":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/utils.js"}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/utils.js":[function(require,module,exports){
+(function (Buffer){
+// Load modules
+
+
+// Declare internals
+
+var internals = {};
+
+
+exports.arrayToObject = function (source) {
+
+    var obj = {};
+    for (var i = 0, il = source.length; i < il; ++i) {
+        if (typeof source[i] !== 'undefined') {
+
+            obj[i] = source[i];
+        }
+    }
+
+    return obj;
+};
+
+
+exports.merge = function (target, source) {
+
+    if (!source) {
+        return target;
+    }
+
+    if (Array.isArray(source)) {
+        for (var i = 0, il = source.length; i < il; ++i) {
+            if (typeof source[i] !== 'undefined') {
+                if (typeof target[i] === 'object') {
+                    target[i] = exports.merge(target[i], source[i]);
+                }
+                else {
+                    target[i] = source[i];
+                }
+            }
+        }
+
+        return target;
+    }
+
+    if (Array.isArray(target)) {
+        if (typeof source !== 'object') {
+            target.push(source);
+            return target;
+        }
+        else {
+            target = exports.arrayToObject(target);
+        }
+    }
+
+    var keys = Object.keys(source);
+    for (var k = 0, kl = keys.length; k < kl; ++k) {
+        var key = keys[k];
+        var value = source[key];
+
+        if (value &&
+            typeof value === 'object') {
+
+            if (!target[key]) {
+                target[key] = value;
+            }
+            else {
+                target[key] = exports.merge(target[key], value);
+            }
+        }
+        else {
+            target[key] = value;
+        }
+    }
+
+    return target;
+};
+
+
+exports.decode = function (str) {
+
+    try {
+        return decodeURIComponent(str.replace(/\+/g, ' '));
+    } catch (e) {
+        return str;
+    }
+};
+
+
+exports.compact = function (obj, refs) {
+
+    if (typeof obj !== 'object' ||
+        obj === null) {
+
+        return obj;
+    }
+
+    refs = refs || [];
+    var lookup = refs.indexOf(obj);
+    if (lookup !== -1) {
+        return refs[lookup];
+    }
+
+    refs.push(obj);
+
+    if (Array.isArray(obj)) {
+        var compacted = [];
+
+        for (var i = 0, l = obj.length; i < l; ++i) {
+            if (typeof obj[i] !== 'undefined') {
+                compacted.push(obj[i]);
+            }
+        }
+
+        return compacted;
+    }
+
+    var keys = Object.keys(obj);
+    for (var i = 0, il = keys.length; i < il; ++i) {
+        var key = keys[i];
+        obj[key] = exports.compact(obj[key], refs);
+    }
+
+    return obj;
+};
+
+
+exports.isRegExp = function (obj) {
+    return Object.prototype.toString.call(obj) === '[object RegExp]';
+};
+
+
+exports.isBuffer = function (obj) {
+
+    if (typeof Buffer !== 'undefined') {
+        return Buffer.isBuffer(obj);
+    }
+    else {
+        return false;
+    }
+};
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"aws-sdk":[function(require,module,exports){
 // AWS SDK for JavaScript v2.0.21
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // License at https://sdk.amazonaws.com/js/BUNDLE_LICENSE.txt
@@ -15399,84 +15888,7 @@ require('./services/sts');
 
 AWS.apiLoader.services['sts']['2011-06-15'] = {"metadata":{"apiVersion":"2011-06-15","endpointPrefix":"sts","globalEndpoint":"sts.amazonaws.com","serviceAbbreviation":"AWS STS","serviceFullName":"AWS Security Token Service","signatureVersion":"v4","xmlNamespace":"https://sts.amazonaws.com/doc/2011-06-15/","protocol":"query"},"operations":{"AssumeRole":{"input":{"type":"structure","required":["RoleArn","RoleSessionName"],"members":{"RoleArn":{},"RoleSessionName":{},"Policy":{},"DurationSeconds":{"type":"integer"},"ExternalId":{},"SerialNumber":{},"TokenCode":{}}},"output":{"resultWrapper":"AssumeRoleResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"AssumedRoleUser":{"shape":"Sf"},"PackedPolicySize":{"type":"integer"}}}},"AssumeRoleWithSAML":{"input":{"type":"structure","required":["RoleArn","PrincipalArn","SAMLAssertion"],"members":{"RoleArn":{},"PrincipalArn":{},"SAMLAssertion":{},"Policy":{},"DurationSeconds":{"type":"integer"}}},"output":{"resultWrapper":"AssumeRoleWithSAMLResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"AssumedRoleUser":{"shape":"Sf"},"PackedPolicySize":{"type":"integer"},"Subject":{},"SubjectType":{},"Issuer":{},"Audience":{},"NameQualifier":{}}}},"AssumeRoleWithWebIdentity":{"input":{"type":"structure","required":["RoleArn","RoleSessionName","WebIdentityToken"],"members":{"RoleArn":{},"RoleSessionName":{},"WebIdentityToken":{},"ProviderId":{},"Policy":{},"DurationSeconds":{"type":"integer"}}},"output":{"resultWrapper":"AssumeRoleWithWebIdentityResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"SubjectFromWebIdentityToken":{},"AssumedRoleUser":{"shape":"Sf"},"PackedPolicySize":{"type":"integer"},"Provider":{},"Audience":{}}}},"DecodeAuthorizationMessage":{"input":{"type":"structure","required":["EncodedMessage"],"members":{"EncodedMessage":{}}},"output":{"resultWrapper":"DecodeAuthorizationMessageResult","type":"structure","members":{"DecodedMessage":{}}}},"GetFederationToken":{"input":{"type":"structure","required":["Name"],"members":{"Name":{},"Policy":{},"DurationSeconds":{"type":"integer"}}},"output":{"resultWrapper":"GetFederationTokenResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"FederatedUser":{"type":"structure","required":["FederatedUserId","Arn"],"members":{"FederatedUserId":{},"Arn":{}}},"PackedPolicySize":{"type":"integer"}}}},"GetSessionToken":{"input":{"type":"structure","members":{"DurationSeconds":{"type":"integer"},"SerialNumber":{},"TokenCode":{}}},"output":{"resultWrapper":"GetSessionTokenResult","type":"structure","members":{"Credentials":{"shape":"Sa"}}}}},"shapes":{"Sa":{"type":"structure","required":["AccessKeyId","SecretAccessKey","SessionToken","Expiration"],"members":{"AccessKeyId":{},"SecretAccessKey":{},"SessionToken":{},"Expiration":{"type":"timestamp"}}},"Sf":{"type":"structure","required":["AssumedRoleId","Arn"],"members":{"AssumedRoleId":{},"Arn":{}}}}};
 
-},{"./core":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/core.js","./http/xhr":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/http/xhr.js","./services/cognitoidentity":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/cognitoidentity.js","./services/dynamodb":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/dynamodb.js","./services/elastictranscoder":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/elastictranscoder.js","./services/s3":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/s3.js","./services/sqs":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sqs.js","./services/sts":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sts.js","./xml/browser_parser":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/xml/browser_parser.js"}],"drop.js":[function(require,module,exports){
-/**
-  basic drag and drop event-ery
-  adapted from https://github.com/mikolalysenko/drag-and-drop-files
-  so this is under an MIT license
-**/
-
-function handleDrop(callback, event) {
-  event.stopPropagation();
-  event.preventDefault();
-  hideTarget();
-  // console.log("drop!")
-  callback(Array.prototype.slice.call(event.dataTransfer.files))
-}
-
-// indicate it's active
-function onDragEnter(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  showTarget();
-  // console.log("enter!")
-  return false;
-}
-
-function onDragLeave(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  // hideTarget();
-  // console.log("leave!")
-  return false;
-}
-
-// don't do anything while dragging
-function onDragOver(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  // showTarget();
-  // console.log("over!")
-  return false;
-}
-
-var showTarget = function() {
-  document.getElementById("dragging").style.display = "block";
-};
-
-var hideTarget = function() {
-  document.getElementById("dragging").style.display = "none";
-};
-
-// set up callbacks on element
-function drop(element, callback, enter, over) {
-  element.addEventListener("dragenter", onDragEnter, false);
-  element.addEventListener("dragleave", onDragLeave, false);
-  element.addEventListener("dragover", onDragOver, false);
-  element.addEventListener("drop", handleDrop.bind(undefined, callback), false);
-}
-
-module.exports = drop;
-
-},{}],"echo.js":[function(require,module,exports){
-var Writable = require('stream').Writable;
-
-var createEcho = function(delay) {
-  var echo = new Writable({
-    highWaterMark: 4194304
-  });
-
-  echo._write = function (chunk, encoding, next) {
-    console.log("chunk received. " + chunk.length);
-    setTimeout(next, delay);
-  };
-
-  return echo;
-}
-
-module.exports = createEcho;
-
-},{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"filereader-stream":[function(require,module,exports){
+},{"./core":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/core.js","./http/xhr":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/http/xhr.js","./services/cognitoidentity":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/cognitoidentity.js","./services/dynamodb":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/dynamodb.js","./services/elastictranscoder":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/elastictranscoder.js","./services/s3":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/s3.js","./services/sqs":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sqs.js","./services/sts":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sts.js","./xml/browser_parser":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/xml/browser_parser.js"}],"filereader-stream":[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var EventEmitter = require('events').EventEmitter
@@ -15512,9 +15924,9 @@ FileStream.prototype._FileReader = function() {
     if (data instanceof ArrayBuffer)
       data = new Buffer(new Uint8Array(event.target.result))
 
-    var ok = self.dest.write(data);
+    var ok = self.dest.write(data)
     if (!ok) {
-      self.pause();
+      self.pause()
       self.dest.once("drain", self.resume.bind(self))
     }
 
@@ -15583,38 +15995,10 @@ FileStream.prototype.abort = function() {
 inherits(FileStream, EventEmitter)
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","inherits":"/home/eric/bulk/bit-voyage/node_modules/filereader-stream/node_modules/inherits/inherits.js"}],"log.js":[function(require,module,exports){
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","inherits":"/home/eric/bulk/bit-voyage/node_modules/filereader-stream/node_modules/inherits/inherits.js"}],"qs":[function(require,module,exports){
+module.exports = require('./lib');
 
-module.exports = function(id) {
-  var elem = document.getElementById(id);
-
-  return function(msg) {
-    elem.innerHTML += (msg + "<br/>");
-    elem.scrollTop = elem.scrollHeight;
-  }
-}
-
-},{}],"params.js":[function(require,module,exports){
-/**
-  Taken from https://github.com/mapbox/frameup/blob/master/index.html
-  released by Mapbox under an ISC license
-**/
-
-// Parse an encoded params string and set params from it.
-var params = {};
-function setParams(encoded) {
-  var pairs = encoded.split('&');
-  for (var i = 0; i < pairs.length; i++) {
-    var key = pairs[i].substr(0, pairs[i].indexOf('='));
-    var val = pairs[i].substr(pairs[i].indexOf('=') + 1);
-    params[key] = val;
-  }
-};
-if (location.hash) setParams(location.hash.replace('#', ''));
-
-module.exports = params;
-
-},{}],"s3-upload-stream":[function(require,module,exports){
+},{"./lib":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/index.js"}],"s3-upload-stream":[function(require,module,exports){
 (function (Buffer){
 var Writable = require('stream').Writable,
     events = require("events");
@@ -15628,20 +16012,29 @@ module.exports = {
   },
 
   // Generate a writeable stream which uploads to a file on S3.
-  upload: function (destinationDetails) {
+  upload: function (destinationDetails, sessionDetails) {
     var e = new events.EventEmitter();
 
-    // Create the writeable stream interface.
+    if (!sessionDetails) sessionDetails = {};
+
+    // Create the writable stream interface.
     var ws = new Writable({
       highWaterMark: 4194304 // 4 MB
     });
 
-    // Data pertaining to the overall upload
-    var multipartUploadID;
-    var partNumber = 1;
-    var partIds = [];
+    // Data pertaining to the overall upload.
+    // If resumable parts are passed in, they must be free of gaps.
+    var multipartUploadID = sessionDetails.UploadId;
+    var partNumber = sessionDetails.Parts ? (sessionDetails.Parts.length + 1) : 1;
+    var partIds = sessionDetails.Parts || [];
     var receivedSize = 0;
     var uploadedSize = 0;
+
+    // Light state management -
+    //   started: used to fire 'ready' even on a quick resume
+    //   paused:  used to govern manual pause/resume
+    var started = false;
+    var paused = false;
 
     // Parts which need to be uploaded to S3.
     var pendingParts = 0;
@@ -15682,21 +16075,85 @@ module.exports = {
 
     // Handler to receive data and upload it to S3.
     ws._write = function (incomingBuffer, enc, next) {
-      absorbBuffer(incomingBuffer);
 
-      if (receivedBuffersLength < partSizeThreshold)
-        return next(); // Ready to receive more data in _write.
+      // Pause/resume check #1 out of 2:
+      //   Block incoming writes immediately on pause.
+      if (paused)
+        e.once('resume', write);
+      else
+        write();
 
-      // We need to upload some data
-      uploadHandler(next);
+      function write() {
+        absorbBuffer(incomingBuffer);
+
+        if (receivedBuffersLength < partSizeThreshold)
+          return next(); // Ready to receive more data in _write.
+
+        // We need to upload some data
+        uploadHandler(next);
+      }
     };
 
-    // Concurrenly upload parts to S3.
+    // Ask the stream to pause - will allow existing
+    // part uploads to complete first.
+    ws.pause = function () {
+      // if already mid-pause, this does nothing
+      if (paused) return false;
+
+      // if there's no active upload, this does nothing
+      if (!started) return false;
+
+      paused = true;
+      // give caller how many parts are mid-upload
+      ws.emit('pausing', pendingParts);
+
+      // if there are no parts outstanding, declare the stream
+      // paused and return currently sent part details.
+      if (pendingParts == 0)
+        notifyPaused();
+
+      // otherwise, the 'paused' event will get sent once the
+      // last part finishes uploading.
+
+      return true;
+    };
+
+    // Lift the pause, and re-kick off the uploading.
+    ws.resume = function () {
+      // if we're not paused, this does nothing
+      if (!paused) return false;
+
+      paused = false;
+      e.emit('resume'); // internal event
+      ws.emit('resume'); // external event
+
+      return true;
+    };
+
+    // when pausing, return relevant pause state to client
+    var notifyPaused = function () {
+      ws.emit('paused', {
+        UploadId: multipartUploadID,
+        Parts: partIds,
+        Uploaded: uploadedSize
+      });
+    };
+
+    // Concurrently upload parts to S3.
     var uploadHandler = function (next) {
+
+      // If this is the first part, and we're just starting,
+      // but we have a multipartUploadID, then we're beginning
+      // a resume and can fire the 'ready' event externally.
+      if (multipartUploadID && !started)
+        ws.emit('ready', multipartUploadID);
+
+      started = true;
+
       if (pendingParts < concurrentPartThreshold) {
         // Has the MPU been created yet?
         if (multipartUploadID)
-          upload(); // Upload the part immeadiately.
+          upload(); // Upload the part immediately.
         else {
           e.once('ready', upload); // Wait until multipart upload is initialized.
           createMultipartUpload();
@@ -15709,13 +16166,28 @@ module.exports = {
       }
 
       function upload() {
-        pendingParts++;
-        flushPart(function (partDetails) {
-          --pendingParts;
-          e.emit('part'); // Internal event
-          ws.emit('part', partDetails); // External event
-        });
-        next();
+
+        // Pause/resume check #2 out of 2:
+        //   Block queued up parts until resumption.
+        if (paused)
+          e.once('resume', uploadNow);
+        else
+          uploadNow();
+
+        function uploadNow() {
+          pendingParts++;
+          flushPart(function (partDetails) {
+            --pendingParts;
+            e.emit('part'); // Internal event
+            ws.emit('part', partDetails); // External event
+
+            // if we're paused and this was the last outstanding part,
+            // we can notify the caller that we're really paused now.
+            if (paused && pendingParts == 0)
+              notifyPaused();
+          });
+          next();
+        }
       }
     };
 
@@ -15820,7 +16292,7 @@ module.exports = {
     // Turn all the individual parts we uploaded to S3 into a finalized upload.
     var completeUpload = function () {
       // There is a possibility that the incoming stream was empty, therefore the MPU never started
-      // and can not be finalized.
+      // and cannot be finalized.
       if (multipartUploadID) {
         cachedClient.completeMultipartUpload(
           {
@@ -15835,9 +16307,10 @@ module.exports = {
             if (err)
               abortUpload('Failed to complete the multipart upload on S3: ' + JSON.stringify(err));
             else {
-              // Emit both events for backwards compatability, and to follow the spec.
+              // Emit both events for backwards compatibility, and to follow the spec.
               ws.emit('uploaded', result);
               ws.emit('finish', result);
+              started = false;
             }
           }
         );
@@ -15869,7 +16342,7 @@ module.exports = {
             ws.emit('error', 'Failed to create a multipart upload on S3: ' + JSON.stringify(err));
           else {
             multipartUploadID = data.UploadId;
-            ws.emit('ready');
+            ws.emit('ready', multipartUploadID);
             e.emit('ready'); // Internal event
           }
         }
