@@ -1,6 +1,13 @@
 var Writable = require('stream').Writable;
+// var qs = require("qs");
 
 module.exports = {
+
+  updateLink: function(qs, params) {
+    var link = window.location.protocol + "//" + window.location.host + "/#" + qs.stringify(params);
+    window.location = link;
+    return false;
+  },
 
   echo: function(delay) {
     var echoStream = new Writable({

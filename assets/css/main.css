@@ -6,11 +6,11 @@ section {
 }
 
 section.drop-here {
-  height: 100px; text-align: center;
-  font-size: 50pt; padding-top: 20px;
+  height: 200px; text-align: center;
+  font-size: 46pt; padding-top: 20px;
   background-color: #f5f5f5;
 } section.drop-here p {
-  margin: 0; padding: 0;
+  margin: 50px; padding: 0;
 }
 
 
@@ -26,7 +26,7 @@ section.log p {
   height: 55px; overflow-y: scroll;
 }
 
-section.url p {
+section.block p {
   padding: 8px 10px; margin: 0;
   word-wrap: break-word;
 }
@@ -60,4 +60,15 @@ a, a:visited {
   color: #1166bb;
 }
 
-a#file-pause, a#file-resume {display: none;}
+a#upload-pause, a#upload-resume {display: none;}
+
+section.block input[type=text] {
+  margin-right: 20px; margin-left: 5px;
+}
+
+
+.s3-test {display: none;}
+.s3-test.error {color: #b00;}
+.s3-test.success {color: #090;}
+.s3-test.message {display: inline-block;}
+a.s3.test {text-decoration: underline; cursor: pointer;}

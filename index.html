@@ -6,26 +6,41 @@
 </head>
 <body>
 
-  <section id="drop-here" class="drop-here">
+  <section class="drop-here">
     <p>DROP A FILE HERE IT'S FUN</p>
   </section>
 
-  <section class="url">
+  <section class="block">
+    <h3>S3 Destination</h3>
+    <p>
+      <label>Bucket:</label>
+      <input type="text" class="param bucket" placeholder="bucket" />
+      <label>Key:</label>
+      <input type="text" class="param access-key" placeholder="key" />
+      <label>Secret key:</label>
+      <input type="text" class="param secret-key" placeholder="secret-key" />
+    </p>
+    <p>
+      <a class="s3 test">Test your S3 credentials.</a>
+      <span class="s3-test success">Test succeeded! Drop a file any time.</span>
+      <span class="s3-test error cors">Test failed! Wrong bucket name, or you need to configure CORS (see below).</span>
+      <span class="s3-test error credentials">Test failed! Wrong key or secret key.</span>
+    </p>
+  </section>
+
+  <section class="uploads">
     <h3>
-      Permalink
+      Uploads
+      <a id="upload-pause" href="#">Pause</a>
+      <a id="upload-resume" href="#">Resume</a>
     </h3>
-    <p class="permalink">
-      <a id="permalink" href="http://bit.voyage">
-        http://bit.voyage
-      </a>
+    <p>
     </p>
   </section>
 
   <section class="log upload">
     <h3>
-      Uploading
-      <a id="upload-pause" href="#">Pause</a>
-      <a id="upload-resume" href="#">Resume</a>
+      Log
     </h3>
     <p id="main-log"></p>
   </section>
@@ -56,6 +71,7 @@
     <h2>RELEASE THE FILE YOU HOLD</h2>
   </div>
 
+  <script src="/assets/js/jquery-2.1.1.min.js"></script>
   <script src="/assets/js/bundle.js"></script>
   <script src="/index.js"></script>
 </body>

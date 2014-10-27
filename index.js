@@ -9,7 +9,7 @@ var AWS = require("aws-sdk"); // thank you @lsegal
 
 var drop = require("./assets/js/drop.js");
 var utils = require("./assets/js/utils.js");
-
+var db = require("./assets/js/db.js");
 
 /**
  * Load in any state from the URL, and initialize bit vehicles.
@@ -18,38 +18,67 @@ var utils = require("./assets/js/utils.js");
 // initial load of parameters
 var params = qs.parse(location.hash ? location.hash.replace("#", "") : null);
 
-// load offset as a number, cache the starting offset for this session.
-if (params.offset) params.offset = parseInt(params.offset);
-var originalOffset = params.offset || 0;
-
-var session = {};
-if (params.UploadId) {
-  session.UploadId = params.UploadId;
-  session.Parts = params.Parts;
+// session, can be changed throughout
+var session = {
+  key: params.key,
+  "secret-key": params['secret-key'],
+  bucket: params.bucket
 };
 
+// load offset as a number, cache the starting offset for this session.
+// if (params.offset) params.offset = parseInt(params.offset);
+// var originalOffset = params.offset || 0;
 
 // configure AWS
-AWS.config.update({
-  accessKeyId: params.key,
-  secretAccessKey: params.secret_key
-});
-s3Stream.client(new AWS.S3());
+var awsClient;
+function initAWS() {
+  AWS.config.update({
+    accessKeyId: session.key,
+    secretAccessKey: session["secret-key"]
+  });
+  awsClient = new AWS.S3();
+}
+initAWS();
+s3Stream.client(awsClient);
 
 var fstream;
 var upload;
 var log = utils.log("main-log");
 
-// S3 pause/resume - the user's pause/resume
-document.getElementById("upload-pause").onclick = function() {
-  if (upload) upload.pause();
-  return false;
-};
 
-document.getElementById("upload-resume").onclick = function() {
-  if (upload) upload.resume();
-  return false;
-};
+/**
+ * Initialize destination parameters.
+*/
+
+$(".bucket").val(params.bucket);
+$(".access-key").val(params.key);
+$(".secret-key").val(params['secret-key']);
+
+// changing values updates session automatically
+$(".param").click(function() {$(this).select(); return false;})
+$(".param").keyup(function() {
+  console.log("changed value.");
+  session.bucket = $(".bucket").val();
+  session.key = $(".access-key").val();
+  session["secret-key"] = $(".secret-key").val();
+  initAWS();
+  utils.updateLink(qs, session);
+});
+
+$(".s3.test").click(function() {
+  awsClient.listObjects({Bucket: session.bucket}, function(err, objects) {
+    if (err) {
+      $(".s3-test").hide();
+      if (err.name == "NetworkingError")
+        $(".s3-test.cors").show();
+      else
+        $(".s3-test.credentials").show();
+    } else {
+      $(".s3-test").hide();
+      $(".s3-test.success").show();
+    }
+  });
+});
 
 /** manage file and AWS streams */
 
@@ -98,7 +127,7 @@ var uploadFile = function(file) {
     "Key": file.name,
     "ContentType": file.type,
     "ACL": "public-read"
-  }, session);
+  });
 
   upload.on('error', function(err, data) {
     console.log(err);
@@ -132,10 +161,10 @@ var uploadFile = function(file) {
     );
 
     // clean up session details from params
-    delete params.UploadId;
-    delete params.Parts;
-    delete params.filename;
-    delete params.offset;
+    // delete params.UploadId;
+    // delete params.Parts;
+    // delete params.filename;
+    // delete params.offset;
 
     console.log("s3-upload-stream: UPLOADED.");
   });
@@ -170,6 +199,19 @@ var uploadFile = function(file) {
 
   fstream.pipe(upload);
 };
+
+
+// S3 pause/resume - the user's pause/resume
+document.getElementById("upload-pause").onclick = function() {
+  if (upload) upload.pause();
+  return false;
+};
+
+document.getElementById("upload-resume").onclick = function() {
+  if (upload) upload.resume();
+  return false;
+};
+
 
 drop(document.body, function(files) {if (files[0]) uploadFile(files[0]);});
 console.log("Drop target armed.")

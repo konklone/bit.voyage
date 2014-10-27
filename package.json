@@ -17,12 +17,13 @@
     "filereader-stream": "/home/eric/bulk/filereader-stream",
     "s3-upload-stream": "/home/eric/bulk/s3-upload-stream",
     "aws-sdk": "*",
-    "qs": "*"
+    "qs": "*",
+    "levelup": "*",
+    "level-js": "*"
   },
 
   "main": "index.js",
   "scripts": {
-    "compile": "browserify -r ./assets/js/utils.js -r filereader-stream -r qs -r aws-sdk -r ./assets/js/drop.js -r s3-upload-stream > assets/js/bundle.js",
-    "watch": "watchify -r ./assets/js/utils.js -r filereader-stream -r qs -r aws-sdk -r ./assets/js/drop.js -r s3-upload-stream -o assets/js/bundle.js"
+    "watch": "watchify -r ./assets/js/db.js -r ./assets/js/utils.js -r ./assets/js/drop.js -r filereader-stream -r qs -r aws-sdk -r s3-upload-stream -o assets/js/bundle.js"
   }
 }
