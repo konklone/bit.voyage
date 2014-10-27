@@ -60,7 +60,6 @@ $(".access-key").val(params.key);
 $(".secret-key").val(params['secret-key']);
 
 // changing values updates session automatically
-$(".param").click(function() {$(this).select(); return false;})
 $(".param").keyup(function() {
   console.log("changed value.");
   session.bucket = $(".bucket").val();
