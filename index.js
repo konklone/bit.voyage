@@ -25,6 +25,11 @@ var session = {
   bucket: params.bucket
 };
 
+// active upload
+var active = {
+  originalOffset: 0
+};
+
 // load offset as a number, cache the starting offset for this session.
 // if (params.offset) params.offset = parseInt(params.offset);
 // var originalOffset = params.offset || 0;
@@ -65,6 +70,7 @@ $(".param").keyup(function() {
   utils.updateLink(qs, session);
 });
 
+// S3 credentials testing
 $(".s3.test").click(function() {
   $(".s3-test").hide();
   $(".s3-test.loading").show();
@@ -83,6 +89,16 @@ $(".s3.test").click(function() {
   });
 });
 
+/**
+ * Initializing and updating the current upload.
+ * Used by 'part' event handler for S3 stream.
+ */
+
+function updateUpload() {
+
+};
+
+
 /** manage file and AWS streams */
 
 var uploadFile = function(file) {
@@ -99,6 +115,10 @@ var uploadFile = function(file) {
 
   // log MBs read to dev console
   fstream.on('progress', utils.mbCounter());
+  fstream.on('progress', function(progress) {
+    var pct = Math.floor((progress/file.size) * 100);
+    $(".progress .reading").css("width", pct + "%");
+  });
 
   // TODO: update progress bar
 
@@ -112,6 +132,7 @@ var uploadFile = function(file) {
 
   fstream.on('end', function(size) {
     console.log("filereader-stream: END at " + size);
+    $(".progress .reading").css("width", "100%");
   });
 
   fstream.on('error', function(err, data) {
@@ -152,9 +173,14 @@ var uploadFile = function(file) {
   upload.concurrentParts(1);
 
   upload.on('part', function(data) {
+    var progress = active.originalOffset + data.uploadedSize;
+    var pct = Math.floor((progress/file.size) * 100);
+
     var parts = Math.ceil(file.size / upload.getMaxPartSize());
-    log("Uploaded part " + data.PartNumber + " out of " + parts + ".");
+    log("Uploaded part " + data.PartNumber + "/" + parts + ", " + utils.display(progress) + "/" + utils.display(file.size) + " (" + pct + "%).");
     console.log("s3-upload-stream: PART " + data.PartNumber + " / " + parts);
+
+    $(".progress .voyage").css("width", pct + "%");
   });
 
   upload.on('uploaded', function(data) {
@@ -163,6 +189,8 @@ var uploadFile = function(file) {
         data.Location +
       "</a>"
     );
+
+    $(".control").hide();
 
     // clean up session details from params
     // delete params.UploadId;
@@ -181,19 +209,27 @@ var uploadFile = function(file) {
   upload.on('ready', function(uploadId) {
     console.log("s3-upload-stream: READY, upload ID created.");
     log("Upload initiated, beginning to transfer parts.")
+
+    $(".control.pause").show();
   });
 
   upload.on('pausing', function(pending) {
     console.log("s3-upload-stream: PAUSING, " + pending + " parts in the air.")
+    log("<strong>Pausing download, do not close tab</strong>, still " + pending + " " + utils.display(upload.getMaxPartSize()) + " part(s) waiting to finish uploading.")
   });
 
   upload.on('paused', function(data) {
     console.log("s3-upload-stream: PAUSED. uploadId: " + data.UploadId + ", parts: " + data.Parts.length + ", uploaded: " + data.Uploaded);
+    log("OK, fully paused.");
+
+    // switch indicator
+    $(".control").hide();
+    $(".control.resume").show();
 
     // the Uploaded value will be relative to the creation of this stream
     // instance, so needs to be based off offset from before the stream
     // instance was created.
-    params.offset = originalOffset + data.Uploaded;
+    params.offset = active.originalOffset + data.Uploaded;
     params.UploadId = data.UploadId;
     params.Parts = data.Parts;
   });
@@ -202,21 +238,33 @@ var uploadFile = function(file) {
     console.log("s3-upload-stream: RESUMED.");
   });
 
+  // begin the voyage
   log("<strong>" + file.name + "</strong> is embarking on a " + utils.display(file.size) + " voyage.")
+  $(".progress .voyage, .progress .reading").css("width", "0%");
+  $(".control").hide();
+
   fstream.pipe(upload);
 };
 
 
 // S3 pause/resume - the user's pause/resume
-document.getElementById("upload-pause").onclick = function() {
-  if (upload) upload.pause();
+$(".control.pause").click(function() {
+  if (upload){
+    upload.pause();
+    $(".control").hide();
+    $(".control.pausing").show();
+  }
   return false;
-};
+});
 
-document.getElementById("upload-resume").onclick = function() {
-  if (upload) upload.resume();
+$(".control.resume").click(function() {
+  if (upload) {
+    upload.resume();
+    $(".control").hide();
+    $(".control.pause").show();
+  }
   return false;
-};
+});
 
 
 drop(document.body, function(files) {if (files[0]) uploadFile(files[0]);});

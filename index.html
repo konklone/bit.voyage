@@ -35,12 +35,23 @@
 
   <section class="uploads">
     <h3>
-      Uploads
-      <a id="upload-pause" href="#">Pause</a>
-      <a id="upload-resume" href="#">Resume</a>
+      Active Upload
     </h3>
-    <p>
+    <p class="detail">
+      <span class="message">Drop a file to begin. Keep it below ~200GB.</span>
+      <span class="filename"></span>
+      <span class="filesize"></span>
+      <span class="parts"></span>
+      <span class="bytes"></span>
+      <a class="control pause" href="#">Pause</a>
+      <span class="control pausing">Pausing, do not close tab...</span>
+      <a class="control resume" href="#">Resume</a>
+      <!-- <input type="checkbox" class="show-file" /> Show file reading -->
     </p>
+    <div class="progress">
+      <div class="reading"></div>
+      <div class="voyage"></div>
+    </div>
   </section>
 
   <section class="log upload">

@@ -26,7 +26,7 @@ section.log p {
   height: 55px; overflow-y: scroll;
 }
 
-section.block p {
+section.block p, section p.detail {
   padding: 10px 10px; margin: 0;
   word-wrap: break-word;
 }
@@ -61,7 +61,7 @@ a, a:visited {
 }
 a.linkify {text-decoration: underline; cursor: pointer;}
 
-a#upload-pause, a#upload-resume {display: none;}
+.control {display: none;}
 
 section.block input[type=text] {
   margin-right: 20px; margin-left: 5px;
@@ -73,3 +73,22 @@ section.block input[type=text] {
 .s3-test.error {color: #b00;}
 .s3-test.success {color: #090;}
 .s3-test.message {display: inline-block;}
+
+.progress {
+  position: relative;
+  height: 50px;
+}
+.progress div {
+  position: absolute; top: 0; left: 0;
+  width: 0%; height: 50px;
+}
+
+.progress div.voyage {
+  background-color: #096; opacity: 50%;
+}
+
+.progress div.reading {
+  background-color: #D0F6DC; opacity: 50%;
+}
+
+.control {font-weight: bold;}

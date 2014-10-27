@@ -6,25 +6,25 @@ var Session = {
 
   db: db,
 
+  put: function(key, obj, cb) {
+    if (!cb) cb = function() {};
+
+    db.put(key, JSON.stringify(obj), cb);
+  },
+
+  get: function(key, cb) {
+    if (!cb) cb = function() {};
+
+    db.get(key, function(err, data) {
+      if (err) return cb(err);
+
+      cb(null, JSON.parse(data));
+    })
+  },
+
   // uploads: function() {
 
-  // },
-
-  //   getUpload: function(uploadId) {
-
-  //   },
-
-  //   saveUpload: function(uploadId, offset, parts) {
-
-  //   },
-
-  // setActiveServer: function(id) {
-  //   db.put("active-server", id);
-  // },
-
-  // getActiveServer: function(cb) {
-  //   db.get("active-server", cb)
-  // },
+  // }
 
   servers: function(cb) {
     if (!cb) cb = function() {};

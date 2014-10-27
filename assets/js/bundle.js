@@ -7,25 +7,25 @@ var Session = {
 
   db: db,
 
+  put: function(key, obj, cb) {
+    if (!cb) cb = function() {};
+
+    db.put(key, JSON.stringify(obj), cb);
+  },
+
+  get: function(key, cb) {
+    if (!cb) cb = function() {};
+
+    db.get(key, function(err, data) {
+      if (err) return cb(err);
+
+      cb(null, JSON.parse(data));
+    })
+  },
+
   // uploads: function() {
 
-  // },
-
-  //   getUpload: function(uploadId) {
-
-  //   },
-
-  //   saveUpload: function(uploadId, offset, parts) {
-
-  //   },
-
-  // setActiveServer: function(id) {
-  //   db.put("active-server", id);
-  // },
-
-  // getActiveServer: function(cb) {
-  //   db.get("active-server", cb)
-  // },
+  // }
 
   servers: function(cb) {
     if (!cb) cb = function() {};
@@ -10735,7 +10735,7 @@ function serializeMember(name, value, rules, fn) {
 module.exports = QueryParamSerializer;
 
 },{"../util":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/region_config.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=[
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=[
   {
     "regions": ["*"],
     "serviceConfigs": [
@@ -19695,7 +19695,7 @@ exports.PassThrough = require('./lib/_stream_passthrough.js');
 },{"./lib/_stream_duplex.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_duplex.js","./lib/_stream_passthrough.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_passthrough.js","./lib/_stream_readable.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_readable.js","./lib/_stream_transform.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_transform.js","./lib/_stream_writable.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_writable.js","stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js":[function(require,module,exports){
 module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js")
 },{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/package.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "name": "levelup",
   "description": "Fast & simple storage - a Node.js-style LevelDB wrapper",
   "version": "0.19.0",
