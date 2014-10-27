@@ -1,4 +1,19 @@
+var Writable = require('stream').Writable;
+
 module.exports = {
+
+  echo: function(delay) {
+    var echoStream = new Writable({
+      highWaterMark: 4194304
+    });
+
+    echoStream._write = function (chunk, encoding, next) {
+      console.log("chunk received. " + chunk.length);
+      setTimeout(next, delay);
+    };
+
+    return echoStream;
+  },
 
   display: function(bytes) {
     if (bytes > 1e9)
@@ -20,6 +35,15 @@ module.exports = {
         console.log("filereader-stream: MBs: " + current);
         next = parseInt((current + MBs) / MBs);
       }
+    }
+  },
+
+  log: function(id) {
+    var elem = document.getElementById(id);
+
+    return function(msg) {
+      elem.innerHTML += (msg + "<br/>");
+      elem.scrollTop = elem.scrollHeight;
     }
   }
 

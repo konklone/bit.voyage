@@ -1,4 +1,115 @@
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js":[function(require,module,exports){
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./assets/js/drop.js":[function(require,module,exports){
+/**
+  basic drag and drop event-ery
+  adapted from https://github.com/mikolalysenko/drag-and-drop-files
+  so this is under an MIT license
+**/
+
+function handleDrop(callback, event) {
+  event.stopPropagation();
+  event.preventDefault();
+  hideTarget();
+  // console.log("drop!")
+  callback(Array.prototype.slice.call(event.dataTransfer.files))
+}
+
+// indicate it's active
+function onDragEnter(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  showTarget();
+  // console.log("enter!")
+  return false;
+}
+
+function onDragLeave(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  // hideTarget();
+  // console.log("leave!")
+  return false;
+}
+
+// don't do anything while dragging
+function onDragOver(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  // showTarget();
+  // console.log("over!")
+  return false;
+}
+
+var showTarget = function() {
+  document.getElementById("dragging").style.display = "block";
+};
+
+var hideTarget = function() {
+  document.getElementById("dragging").style.display = "none";
+};
+
+// set up callbacks on element
+function drop(element, callback, enter, over) {
+  element.addEventListener("dragenter", onDragEnter, false);
+  element.addEventListener("dragleave", onDragLeave, false);
+  element.addEventListener("dragover", onDragOver, false);
+  element.addEventListener("drop", handleDrop.bind(undefined, callback), false);
+}
+
+module.exports = drop;
+
+},{}],"./assets/js/utils.js":[function(require,module,exports){
+var Writable = require('stream').Writable;
+
+module.exports = {
+
+  echo: function(delay) {
+    var echoStream = new Writable({
+      highWaterMark: 4194304
+    });
+
+    echoStream._write = function (chunk, encoding, next) {
+      console.log("chunk received. " + chunk.length);
+      setTimeout(next, delay);
+    };
+
+    return echoStream;
+  },
+
+  display: function(bytes) {
+    if (bytes > 1e9)
+      return (bytes / 1e9).toFixed(2) + 'GB';
+    else if (bytes > 1e6)
+      return (bytes / 1e6).toFixed(2) + 'MB';
+    else
+      return (bytes / 1e3).toFixed(2) + 'KB';
+  },
+
+  // counter of MBs
+  mbCounter: function() {
+    var MBs = 5;
+    var MB = 1000 * 1000;
+    var next = 1;
+    return function(progress) {
+      if (progress > (next * (MBs * MB))) {
+        var current = parseInt(progress / (MBs * MB)) * MBs;
+        console.log("filereader-stream: MBs: " + current);
+        next = parseInt((current + MBs) / MBs);
+      }
+    }
+  },
+
+  log: function(id) {
+    var elem = document.getElementById(id);
+
+    return function(msg) {
+      elem.innerHTML += (msg + "<br/>");
+      elem.scrollTop = elem.scrollHeight;
+    }
+  }
+
+};
+
+},{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js":[function(require,module,exports){
 
 },{}],"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js":[function(require,module,exports){
 /*!
@@ -10543,7 +10654,7 @@ function serializeMember(name, value, rules, fn) {
 module.exports = QueryParamSerializer;
 
 },{"../util":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/region_config.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=[
+module.exports=[
   {
     "regions": ["*"],
     "serviceConfigs": [
@@ -15777,167 +15888,7 @@ require('./services/sts');
 
 AWS.apiLoader.services['sts']['2011-06-15'] = {"metadata":{"apiVersion":"2011-06-15","endpointPrefix":"sts","globalEndpoint":"sts.amazonaws.com","serviceAbbreviation":"AWS STS","serviceFullName":"AWS Security Token Service","signatureVersion":"v4","xmlNamespace":"https://sts.amazonaws.com/doc/2011-06-15/","protocol":"query"},"operations":{"AssumeRole":{"input":{"type":"structure","required":["RoleArn","RoleSessionName"],"members":{"RoleArn":{},"RoleSessionName":{},"Policy":{},"DurationSeconds":{"type":"integer"},"ExternalId":{},"SerialNumber":{},"TokenCode":{}}},"output":{"resultWrapper":"AssumeRoleResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"AssumedRoleUser":{"shape":"Sf"},"PackedPolicySize":{"type":"integer"}}}},"AssumeRoleWithSAML":{"input":{"type":"structure","required":["RoleArn","PrincipalArn","SAMLAssertion"],"members":{"RoleArn":{},"PrincipalArn":{},"SAMLAssertion":{},"Policy":{},"DurationSeconds":{"type":"integer"}}},"output":{"resultWrapper":"AssumeRoleWithSAMLResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"AssumedRoleUser":{"shape":"Sf"},"PackedPolicySize":{"type":"integer"},"Subject":{},"SubjectType":{},"Issuer":{},"Audience":{},"NameQualifier":{}}}},"AssumeRoleWithWebIdentity":{"input":{"type":"structure","required":["RoleArn","RoleSessionName","WebIdentityToken"],"members":{"RoleArn":{},"RoleSessionName":{},"WebIdentityToken":{},"ProviderId":{},"Policy":{},"DurationSeconds":{"type":"integer"}}},"output":{"resultWrapper":"AssumeRoleWithWebIdentityResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"SubjectFromWebIdentityToken":{},"AssumedRoleUser":{"shape":"Sf"},"PackedPolicySize":{"type":"integer"},"Provider":{},"Audience":{}}}},"DecodeAuthorizationMessage":{"input":{"type":"structure","required":["EncodedMessage"],"members":{"EncodedMessage":{}}},"output":{"resultWrapper":"DecodeAuthorizationMessageResult","type":"structure","members":{"DecodedMessage":{}}}},"GetFederationToken":{"input":{"type":"structure","required":["Name"],"members":{"Name":{},"Policy":{},"DurationSeconds":{"type":"integer"}}},"output":{"resultWrapper":"GetFederationTokenResult","type":"structure","members":{"Credentials":{"shape":"Sa"},"FederatedUser":{"type":"structure","required":["FederatedUserId","Arn"],"members":{"FederatedUserId":{},"Arn":{}}},"PackedPolicySize":{"type":"integer"}}}},"GetSessionToken":{"input":{"type":"structure","members":{"DurationSeconds":{"type":"integer"},"SerialNumber":{},"TokenCode":{}}},"output":{"resultWrapper":"GetSessionTokenResult","type":"structure","members":{"Credentials":{"shape":"Sa"}}}}},"shapes":{"Sa":{"type":"structure","required":["AccessKeyId","SecretAccessKey","SessionToken","Expiration"],"members":{"AccessKeyId":{},"SecretAccessKey":{},"SessionToken":{},"Expiration":{"type":"timestamp"}}},"Sf":{"type":"structure","required":["AssumedRoleId","Arn"],"members":{"AssumedRoleId":{},"Arn":{}}}}};
 
-},{"./core":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/core.js","./http/xhr":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/http/xhr.js","./services/cognitoidentity":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/cognitoidentity.js","./services/dynamodb":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/dynamodb.js","./services/elastictranscoder":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/elastictranscoder.js","./services/s3":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/s3.js","./services/sqs":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sqs.js","./services/sts":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sts.js","./xml/browser_parser":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/xml/browser_parser.js"}],"drop.js":[function(require,module,exports){
-/**
-  basic drag and drop event-ery
-  adapted from https://github.com/mikolalysenko/drag-and-drop-files
-  so this is under an MIT license
-**/
-
-function handleDrop(callback, event) {
-  event.stopPropagation();
-  event.preventDefault();
-  hideTarget();
-  // console.log("drop!")
-  callback(Array.prototype.slice.call(event.dataTransfer.files))
-}
-
-// indicate it's active
-function onDragEnter(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  showTarget();
-  // console.log("enter!")
-  return false;
-}
-
-function onDragLeave(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  // hideTarget();
-  // console.log("leave!")
-  return false;
-}
-
-// don't do anything while dragging
-function onDragOver(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  // showTarget();
-  // console.log("over!")
-  return false;
-}
-
-var showTarget = function() {
-  document.getElementById("dragging").style.display = "block";
-};
-
-var hideTarget = function() {
-  document.getElementById("dragging").style.display = "none";
-};
-
-// set up callbacks on element
-function drop(element, callback, enter, over) {
-  element.addEventListener("dragenter", onDragEnter, false);
-  element.addEventListener("dragleave", onDragLeave, false);
-  element.addEventListener("dragover", onDragOver, false);
-  element.addEventListener("drop", handleDrop.bind(undefined, callback), false);
-}
-
-module.exports = drop;
-
-},{}],"echo.js":[function(require,module,exports){
-var Writable = require('stream').Writable;
-
-var createEcho = function(delay) {
-  var echo = new Writable({
-    highWaterMark: 4194304
-  });
-
-  echo._write = function (chunk, encoding, next) {
-    console.log("chunk received. " + chunk.length);
-    setTimeout(next, delay);
-  };
-
-  return echo;
-}
-
-module.exports = createEcho;
-
-},{"stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"extend":[function(require,module,exports){
-var hasOwn = Object.prototype.hasOwnProperty;
-var toString = Object.prototype.toString;
-var undefined;
-
-var isPlainObject = function isPlainObject(obj) {
-	'use strict';
-	if (!obj || toString.call(obj) !== '[object Object]') {
-		return false;
-	}
-
-	var has_own_constructor = hasOwn.call(obj, 'constructor');
-	var has_is_property_of_method = obj.constructor && obj.constructor.prototype && hasOwn.call(obj.constructor.prototype, 'isPrototypeOf');
-	// Not own constructor property must be Object
-	if (obj.constructor && !has_own_constructor && !has_is_property_of_method) {
-		return false;
-	}
-
-	// Own properties are enumerated firstly, so to speed up,
-	// if last one is own, then all properties are own.
-	var key;
-	for (key in obj) {}
-
-	return key === undefined || hasOwn.call(obj, key);
-};
-
-module.exports = function extend() {
-	'use strict';
-	var options, name, src, copy, copyIsArray, clone,
-		target = arguments[0],
-		i = 1,
-		length = arguments.length,
-		deep = false;
-
-	// Handle a deep copy situation
-	if (typeof target === 'boolean') {
-		deep = target;
-		target = arguments[1] || {};
-		// skip the boolean and the target
-		i = 2;
-	} else if ((typeof target !== 'object' && typeof target !== 'function') || target == null) {
-		target = {};
-	}
-
-	for (; i < length; ++i) {
-		options = arguments[i];
-		// Only deal with non-null/undefined values
-		if (options != null) {
-			// Extend the base object
-			for (name in options) {
-				src = target[name];
-				copy = options[name];
-
-				// Prevent never-ending loop
-				if (target === copy) {
-					continue;
-				}
-
-				// Recurse if we're merging plain objects or arrays
-				if (deep && copy && (isPlainObject(copy) || (copyIsArray = Array.isArray(copy)))) {
-					if (copyIsArray) {
-						copyIsArray = false;
-						clone = src && Array.isArray(src) ? src : [];
-					} else {
-						clone = src && isPlainObject(src) ? src : {};
-					}
-
-					// Never move original objects, clone them
-					target[name] = extend(deep, clone, copy);
-
-				// Don't bring in undefined values
-				} else if (copy !== undefined) {
-					target[name] = copy;
-				}
-			}
-		}
-	}
-
-	// Return the modified object
-	return target;
-};
-
-
-},{}],"filereader-stream":[function(require,module,exports){
+},{"./core":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/core.js","./http/xhr":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/http/xhr.js","./services/cognitoidentity":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/cognitoidentity.js","./services/dynamodb":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/dynamodb.js","./services/elastictranscoder":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/elastictranscoder.js","./services/s3":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/s3.js","./services/sqs":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sqs.js","./services/sts":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/services/sts.js","./xml/browser_parser":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/xml/browser_parser.js"}],"filereader-stream":[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var EventEmitter = require('events').EventEmitter
@@ -16044,18 +15995,7 @@ FileStream.prototype.abort = function() {
 inherits(FileStream, EventEmitter)
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","inherits":"/home/eric/bulk/bit-voyage/node_modules/filereader-stream/node_modules/inherits/inherits.js"}],"log.js":[function(require,module,exports){
-
-module.exports = function(id) {
-  var elem = document.getElementById(id);
-
-  return function(msg) {
-    elem.innerHTML += (msg + "<br/>");
-    elem.scrollTop = elem.scrollHeight;
-  }
-}
-
-},{}],"qs":[function(require,module,exports){
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","inherits":"/home/eric/bulk/bit-voyage/node_modules/filereader-stream/node_modules/inherits/inherits.js"}],"qs":[function(require,module,exports){
 module.exports = require('./lib');
 
 },{"./lib":"/home/eric/bulk/bit-voyage/node_modules/qs/lib/index.js"}],"s3-upload-stream":[function(require,module,exports){
