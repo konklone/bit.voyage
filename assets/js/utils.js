@@ -49,8 +49,8 @@ module.exports = {
     var elem = document.getElementById(id);
 
     return function(msg) {
-      elem.innerHTML += (msg + "<br/>");
-      elem.scrollTop = elem.scrollHeight;
+      elem.innerHTML = (msg + "<br/>") + elem.innerHTML;
+      elem.scrollTop = 0; // elem.scrollHeight; // for bottom
     }
   }
 

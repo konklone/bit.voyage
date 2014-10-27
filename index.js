@@ -66,9 +66,12 @@ $(".param").keyup(function() {
 });
 
 $(".s3.test").click(function() {
+  $(".s3-test").hide();
+  $(".s3-test.loading").show();
+
   awsClient.listObjects({Bucket: session.bucket}, function(err, objects) {
+    $(".s3-test").hide();
     if (err) {
-      $(".s3-test").hide();
       if (err.name == "NetworkingError")
         $(".s3-test.cors").show();
       else
@@ -139,7 +142,7 @@ var uploadFile = function(file) {
   if (file.size > (50 * 1024 * 1024 * 1024)) {
     var newSize = parseInt(file.size / 9500);
     upload.maxPartSize(newSize); // 9500 for buffer
-    log("Adjusting part size: " + display(newSize));
+    log("Will be uploading " + display(newSize) + " chunks to S3.");
     console.log("Part size should be: " + newSize);
   } else {
     upload.maxPartSize(5 * 1024 * 1024);
@@ -149,12 +152,13 @@ var uploadFile = function(file) {
   upload.concurrentParts(1);
 
   upload.on('part', function(data) {
-    log("Part " + data.PartNumber + ": " + data.ETag);
-    console.log("s3-upload-stream: PART " + data.PartNumber);
+    var parts = Math.ceil(file.size / upload.getMaxPartSize());
+    log("Uploaded part " + data.PartNumber + " out of " + parts + ".");
+    console.log("s3-upload-stream: PART " + data.PartNumber + " / " + parts);
   });
 
   upload.on('uploaded', function(data) {
-    log("Done! " +
+    log("Arrived! Download <strong>" + file.name + "</strong> at " +
       "<a href=\"" + data.Location + "\">" +
         data.Location +
       "</a>"
@@ -176,6 +180,7 @@ var uploadFile = function(file) {
 
   upload.on('ready', function(uploadId) {
     console.log("s3-upload-stream: READY, upload ID created.");
+    log("Upload initiated, beginning to transfer parts.")
   });
 
   upload.on('pausing', function(pending) {
@@ -197,6 +202,7 @@ var uploadFile = function(file) {
     console.log("s3-upload-stream: RESUMED.");
   });
 
+  log("<strong>" + file.name + "</strong> is embarking on a " + utils.display(file.size) + " voyage.")
   fstream.pipe(upload);
 };
 

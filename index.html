@@ -7,13 +7,13 @@
 <body>
 
   <section class="drop-here">
-    <p>DROP A FILE HERE IT'S FUN</p>
+    <p>DROP A FILE ON A VOYAGE</p>
   </section>
 
   <section class="block">
-    <h3>S3 Destination</h3>
+    <h3>Destination</h3>
     <p>
-      <label>Bucket:</label>
+      <label>S3 Bucket:</label>
       <input type="text" class="param bucket" placeholder="bucket" />
       <label>Key:</label>
       <input type="text" class="param access-key" placeholder="key" />
@@ -21,11 +21,16 @@
       <input type="text" class="param secret-key" placeholder="secret-key" />
     </p>
     <p>
-      <a class="s3 test">Test your S3 credentials.</a>
+      <a class="linkify s3 test">Test your S3 details.</a>
+      <span class="s3-test loading"><blink>Testing...</blink></span>
       <span class="s3-test success">Test succeeded! Drop a file any time.</span>
       <span class="s3-test error cors">Test failed! Wrong bucket name, or you need to configure CORS (see below).</span>
       <span class="s3-test error credentials">Test failed! Wrong key or secret key.</span>
     </p>
+    <!-- <p>
+      <a class="linkify">Save your S3 details</a>
+      in your browser and remove the permalink.
+    </p> -->
   </section>
 
   <section class="uploads">
@@ -40,14 +45,14 @@
 
   <section class="log upload">
     <h3>
-      Log
+      Captain's Log
     </h3>
     <p id="main-log"></p>
   </section>
 
   <section class="instructions">
-    <h3>S3 CORS Configuration</h3>
     <p>
+      <strong>CORS trouble?</strong>
       Paste this into your S3 bucket's CORS configuration. Change <code class="inline">http://bit.voyage</code> to <code class="inline">*</code> to allow it to come from anywhere.
     </p>
   <code><pre id="instructions">

@@ -22,12 +22,12 @@ section h3 {
 section.log.file {display: none;}
 
 section.log p {
-  padding: 0 10px;
+  padding: 0 10px 0px 10px;
   height: 55px; overflow-y: scroll;
 }
 
 section.block p {
-  padding: 8px 10px; margin: 0;
+  padding: 10px 10px; margin: 0;
   word-wrap: break-word;
 }
 
@@ -59,6 +59,7 @@ code.inline {background-color: #e5e5e5; padding: 0 3px;}
 a, a:visited {
   color: #1166bb;
 }
+a.linkify {text-decoration: underline; cursor: pointer;}
 
 a#upload-pause, a#upload-resume {display: none;}
 
@@ -68,7 +69,7 @@ section.block input[type=text] {
 
 
 .s3-test {display: none;}
+.s3-test.loading {color: #999;}
 .s3-test.error {color: #b00;}
 .s3-test.success {color: #090;}
 .s3-test.message {display: inline-block;}
-a.s3.test {text-decoration: underline; cursor: pointer;}
