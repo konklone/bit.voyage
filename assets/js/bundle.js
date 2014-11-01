@@ -10735,7 +10735,7 @@ function serializeMember(name, value, rules, fn) {
 module.exports = QueryParamSerializer;
 
 },{"../util":"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/aws-sdk/lib/region_config.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=[
+module.exports=[
   {
     "regions": ["*"],
     "serviceConfigs": [
@@ -19121,7 +19121,11 @@ DeferredLevelDOWN.prototype._iterator = function () {
 module.exports = DeferredLevelDOWN
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js","abstract-leveldown":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-leveldown.js","buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-leveldown.js":[function(require,module,exports){
+},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js","abstract-leveldown":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-leveldown.js","buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-chained-batch.js":[function(require,module,exports){
+module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js")
+},{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-iterator.js":[function(require,module,exports){
+module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js")
+},{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-leveldown.js":[function(require,module,exports){
 module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js")
 },{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/errno/custom.js":[function(require,module,exports){
 var prr = require('prr')
@@ -19682,7 +19686,15 @@ module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_
 module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_transform.js")
 },{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_transform.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_transform.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_writable.js":[function(require,module,exports){
 module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js")
-},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/readable.js":[function(require,module,exports){
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/core-util-is/lib/util.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/node_modules/core-util-is/lib/util.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/node_modules/core-util-is/lib/util.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/node_modules/core-util-is/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/inherits/inherits_browser.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/inherits/inherits_browser.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/inherits/inherits_browser.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/inherits/inherits_browser.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/isarray/index.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/isarray/index.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/isarray/index.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/isarray/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/string_decoder/index.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/string_decoder/index.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/string_decoder/index.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/string_decoder/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/readable.js":[function(require,module,exports){
 var Stream = require('stream'); // hack to fix a circular dependency issue when used with browserify
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = Stream;
@@ -19695,7 +19707,7 @@ exports.PassThrough = require('./lib/_stream_passthrough.js');
 },{"./lib/_stream_duplex.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_duplex.js","./lib/_stream_passthrough.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_passthrough.js","./lib/_stream_readable.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_readable.js","./lib/_stream_transform.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_transform.js","./lib/_stream_writable.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_writable.js","stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js":[function(require,module,exports){
 module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js")
 },{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/package.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports={
   "name": "levelup",
   "description": "Fast & simple storage - a Node.js-style LevelDB wrapper",
   "version": "0.19.0",

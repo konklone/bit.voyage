@@ -119,8 +119,6 @@ var uploadFile = function(file) {
     $(".progress .reading").css("width", pct + "%");
   });
 
-  // TODO: update progress bar
-
   fstream.on('pause', function(offset) {
     console.log("filereader-stream: PAUSE at " + offset);
   });
@@ -152,24 +150,19 @@ var uploadFile = function(file) {
     "ACL": "public-read"
   });
 
-  upload.on('error', function(err, data) {
-    console.log(err);
-    window.arguments = arguments;
-  })
-
   // by default, part size means a 50GB max (10000 part limit)
   // by raising part size, we increase total capacity
   if (file.size > (50 * 1024 * 1024 * 1024)) {
     var newSize = parseInt(file.size / 9500);
     upload.maxPartSize(newSize); // 9500 for buffer
-    log("Will be uploading " + display(newSize) + " chunks to S3.");
+    log("Will be uploading " + utils.display(newSize) + " chunks to S3.");
     console.log("Part size should be: " + newSize);
   } else {
     upload.maxPartSize(5 * 1024 * 1024);
   }
 
   // 1 at a time for now
-  upload.concurrentParts(1);
+  upload.concurrentParts(4);
 
   upload.on('part', function(data) {
     var progress = active.originalOffset + data.uploadedSize;
@@ -190,12 +183,6 @@ var uploadFile = function(file) {
     );
 
     $(".control").hide();
-
-    // clean up session details from params
-    // delete params.UploadId;
-    // delete params.Parts;
-    // delete params.filename;
-    // delete params.offset;
 
     console.log("s3-upload-stream: UPLOADED.");
   });
