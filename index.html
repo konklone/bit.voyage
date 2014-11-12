@@ -6,33 +6,64 @@
 </head>
 <body>
 
-  <section id="drop-here" class="drop-here">
-    <p>DROP A FILE HERE IT'S FUN</p>
+  <section class="drop-here">
+    <p>DROP A FILE ON A VOYAGE</p>
   </section>
 
-  <section class="url">
-    <h3>
-      Permalink
-    </h3>
-    <p class="permalink">
-      <a id="permalink" href="http://bit.voyage">
-        http://bit.voyage
-      </a>
+  <section class="block">
+    <h3>Destination</h3>
+    <p>
+      <label>S3 Bucket:</label>
+      <input type="text" class="param bucket" placeholder="bucket" />
+      <label>Key:</label>
+      <input type="text" class="param access-key" placeholder="key" />
+      <label>Secret key:</label>
+      <input type="text" class="param secret-key" placeholder="secret-key" />
     </p>
+    <p>
+      <a class="linkify s3 test">Test your S3 details.</a>
+      <span class="s3-test loading"><blink>Testing...</blink></span>
+      <span class="s3-test success">Test succeeded! Drop a file any time.</span>
+      <span class="s3-test error cors">Test failed! Wrong bucket name, or you need to configure CORS (see below).</span>
+      <span class="s3-test error credentials">Test failed! Wrong key or secret key.</span>
+    </p>
+    <!-- <p>
+      <a class="linkify">Save your S3 details</a>
+      in your browser and remove the permalink.
+    </p> -->
+  </section>
+
+  <section class="uploads">
+    <h3>
+      Active Upload
+    </h3>
+    <p class="detail">
+      <span class="message">Drop a file to begin. Keep it below ~200GB.</span>
+      <span class="filename"></span>
+      <span class="filesize"></span>
+      <span class="parts"></span>
+      <span class="bytes"></span>
+      <a class="control pause" href="#">Pause</a>
+      <span class="control pausing">Pausing, do not close tab...</span>
+      <a class="control resume" href="#">Resume</a>
+      <!-- <input type="checkbox" class="show-file" /> Show file reading -->
+    </p>
+    <div class="progress">
+      <div class="reading"></div>
+      <div class="voyage"></div>
+    </div>
   </section>
 
   <section class="log upload">
     <h3>
-      Uploading
-      <a id="upload-pause" href="#">Pause</a>
-      <a id="upload-resume" href="#">Resume</a>
+      Captain's Log
     </h3>
     <p id="main-log"></p>
   </section>
 
   <section class="instructions">
-    <h3>S3 CORS Configuration</h3>
     <p>
+      <strong>CORS trouble?</strong>
       Paste this into your S3 bucket's CORS configuration. Change <code class="inline">http://bit.voyage</code> to <code class="inline">*</code> to allow it to come from anywhere.
     </p>
   <code><pre id="instructions">
@@ -56,6 +87,7 @@
     <h2>RELEASE THE FILE YOU HOLD</h2>
   </div>
 
+  <script src="/assets/js/jquery-2.1.1.min.js"></script>
   <script src="/assets/js/bundle.js"></script>
   <script src="/index.js"></script>
 </body>

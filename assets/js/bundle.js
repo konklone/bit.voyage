@@ -1,4 +1,78 @@
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./assets/js/drop.js":[function(require,module,exports){
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./assets/js/db.js":[function(require,module,exports){
+var levelup = require('levelup');
+var leveljs = require('level-js');
+var db = levelup('bitvoyage', { db: leveljs });
+
+var Session = {
+
+  db: db,
+
+  put: function(key, obj, cb) {
+    if (!cb) cb = function() {};
+
+    db.put(key, JSON.stringify(obj), cb);
+  },
+
+  get: function(key, cb) {
+    if (!cb) cb = function() {};
+
+    db.get(key, function(err, data) {
+      if (err) return cb(err);
+
+      cb(null, JSON.parse(data));
+    })
+  },
+
+  // uploads: function() {
+
+  // }
+
+  servers: function(cb) {
+    if (!cb) cb = function() {};
+
+    db.get("servers", function(err, value) {
+      if (err) return cb(null, {});
+
+      cb(null, JSON.parse(value))
+    })
+  },
+
+    addServer: function(id, details, cb) {
+      if (!cb) cb = function() {};
+
+      Session.servers(function(err, servers) {
+        if (err) return cb(err);
+
+        servers[id] = details;
+        console.log(JSON.stringify(servers));
+        db.put("servers", JSON.stringify(servers), function(err) {
+          if (err) return cb(err);
+
+          if (cb) Session.servers(cb);
+        });
+      });
+    },
+
+    removeServer: function(id, cb) {
+      if (!cb) cb = function() {};
+
+      Session.servers(function(err, servers) {
+        if (err) return cb(err);
+
+        delete servers[id];
+        db.put("servers", JSON.stringify(servers), cb);
+      });
+    },
+
+    clearServers: function(cb) {
+      db.del("servers", cb);
+    }
+
+};
+
+module.exports = Session;
+
+},{"level-js":"/home/eric/bulk/bit-voyage/node_modules/level-js/index.js","levelup":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/levelup.js"}],"./assets/js/drop.js":[function(require,module,exports){
 /**
   basic drag and drop event-ery
   adapted from https://github.com/mikolalysenko/drag-and-drop-files
@@ -59,8 +133,15 @@ module.exports = drop;
 
 },{}],"./assets/js/utils.js":[function(require,module,exports){
 var Writable = require('stream').Writable;
+// var qs = require("qs");
 
 module.exports = {
+
+  updateLink: function(qs, params) {
+    var link = window.location.protocol + "//" + window.location.host + "/#" + qs.stringify(params);
+    window.location = link;
+    return false;
+  },
 
   echo: function(delay) {
     var echoStream = new Writable({
@@ -102,8 +183,8 @@ module.exports = {
     var elem = document.getElementById(id);
 
     return function(msg) {
-      elem.innerHTML += (msg + "<br/>");
-      elem.scrollTop = elem.scrollHeight;
+      elem.innerHTML = (msg + "<br/>") + elem.innerHTML;
+      elem.scrollTop = 0; // elem.scrollHeight; // for bottom
     }
   }
 
@@ -15438,6 +15519,4343 @@ function inherits (c, p, proto) {
 //function Parent () {}
 //inherits(Child, Parent)
 //new Child
+
+},{}],"/home/eric/bulk/bit-voyage/node_modules/level-js/index.js":[function(require,module,exports){
+(function (Buffer){
+module.exports = Level
+
+var IDB = require('idb-wrapper')
+var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
+var util = require('util')
+var Iterator = require('./iterator')
+var isBuffer = require('isbuffer')
+var xtend = require('xtend')
+var toBuffer = require('typedarray-to-buffer')
+
+function Level(location) {
+  if (!(this instanceof Level)) return new Level(location)
+  if (!location) throw new Error("constructor requires at least a location argument")
+  this.IDBOptions = {}
+  this.location = location
+}
+
+util.inherits(Level, AbstractLevelDOWN)
+
+Level.prototype._open = function(options, callback) {
+  var self = this
+    
+  var idbOpts = {
+    storeName: this.location,
+    autoIncrement: false,
+    keyPath: null,
+    onStoreReady: function () {
+      callback && callback(null, self.idb)
+    }, 
+    onError: function(err) {
+      callback && callback(err)
+    }
+  }
+  
+  xtend(idbOpts, options)
+  this.IDBOptions = idbOpts
+  this.idb = new IDB(idbOpts)
+}
+
+Level.prototype._get = function (key, options, callback) {
+  this.idb.get(key, function (value) {
+    if (value === undefined) {
+      // 'NotFound' error, consistent with LevelDOWN API
+      return callback(new Error('NotFound'))
+    }
+    // by default return buffers, unless explicitly told not to
+    var asBuffer = true
+    if (options.asBuffer === false) asBuffer = false
+    if (options.raw) asBuffer = false
+    if (asBuffer) {
+      if (value instanceof Uint8Array) value = toBuffer(value)
+      else value = new Buffer(String(value))
+    }
+    return callback(null, value, key)
+  }, callback)
+}
+
+Level.prototype._del = function(id, options, callback) {
+  this.idb.remove(id, callback, callback)
+}
+
+Level.prototype._put = function (key, value, options, callback) {
+  if (value instanceof ArrayBuffer) {
+    value = toBuffer(new Uint8Array(value))
+  }
+  var obj = this.convertEncoding(key, value, options)
+  if (Buffer.isBuffer(obj.value)) {
+    obj.value = new Uint8Array(value.toArrayBuffer())
+  }
+  this.idb.put(obj.key, obj.value, function() { callback() }, callback)
+}
+
+Level.prototype.convertEncoding = function(key, value, options) {
+  if (options.raw) return {key: key, value: value}
+  if (value) {
+    var stringed = value.toString()
+    if (stringed === 'NaN') value = 'NaN'
+  }
+  var valEnc = options.valueEncoding
+  var obj = {key: key, value: value}
+  if (value && (!valEnc || valEnc !== 'binary')) {
+    if (typeof obj.value !== 'object') {
+      obj.value = stringed
+    }
+  }
+  return obj
+}
+
+Level.prototype.iterator = function (options) {
+  if (typeof options !== 'object') options = {}
+  return new Iterator(this.idb, options)
+}
+
+Level.prototype._batch = function (array, options, callback) {
+  var op
+  var i
+  var k
+  var copiedOp
+  var currentOp
+  var modified = []
+  
+  if (array.length === 0) return setTimeout(callback, 0)
+  
+  for (i = 0; i < array.length; i++) {
+    copiedOp = {}
+    currentOp = array[i]
+    modified[i] = copiedOp
+    
+    var converted = this.convertEncoding(currentOp.key, currentOp.value, options)
+    currentOp.key = converted.key
+    currentOp.value = converted.value
+
+    for (k in currentOp) {
+      if (k === 'type' && currentOp[k] == 'del') {
+        copiedOp[k] = 'remove'
+      } else {
+        copiedOp[k] = currentOp[k]
+      }
+    }
+  }
+
+  return this.idb.batch(modified, function(){ callback() }, callback)
+}
+
+Level.prototype._close = function (callback) {
+  this.idb.db.close()
+  callback()
+}
+
+Level.prototype._approximateSize = function (start, end, callback) {
+  var err = new Error('Not implemented')
+  if (callback)
+    return callback(err)
+
+  throw err
+}
+
+Level.prototype._isBuffer = function (obj) {
+  return Buffer.isBuffer(obj)
+}
+
+Level.destroy = function (db, callback) {
+  if (typeof db === 'object') {
+    var prefix = db.IDBOptions.storePrefix || 'IDBWrapper-'
+    var dbname = db.location
+  } else {
+    var prefix = 'IDBWrapper-'
+    var dbname = db
+  }
+  var request = indexedDB.deleteDatabase(prefix + dbname)
+  request.onsuccess = function() {
+    callback()
+  }
+  request.onerror = function(err) {
+    callback(err)
+  }
+}
+
+var checkKeyValue = Level.prototype._checkKeyValue = function (obj, type) {
+  if (obj === null || obj === undefined)
+    return new Error(type + ' cannot be `null` or `undefined`')
+  if (obj === null || obj === undefined)
+    return new Error(type + ' cannot be `null` or `undefined`')
+  if (isBuffer(obj) && obj.byteLength === 0)
+    return new Error(type + ' cannot be an empty ArrayBuffer')
+  if (String(obj) === '')
+    return new Error(type + ' cannot be an empty String')
+  if (obj.length === 0)
+    return new Error(type + ' cannot be an empty Array')
+}
+
+}).call(this,require("buffer").Buffer)
+},{"./iterator":"/home/eric/bulk/bit-voyage/node_modules/level-js/iterator.js","abstract-leveldown":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js","buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","idb-wrapper":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/idb-wrapper/idbstore.js","isbuffer":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/isbuffer/index.js","typedarray-to-buffer":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/typedarray-to-buffer/index.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js","xtend":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/iterator.js":[function(require,module,exports){
+var util = require('util')
+var AbstractIterator  = require('abstract-leveldown').AbstractIterator
+var ltgt = require('ltgt')
+
+module.exports = Iterator
+
+function Iterator (db, options) {
+  if (!options) options = {}
+  this.options = options
+  AbstractIterator.call(this, db)
+  this._order = options.reverse ? 'DESC': 'ASC'
+  this._limit = options.limit
+  this._count = 0
+  this._done  = false
+  var lower = ltgt.lowerBound(options)
+  var upper = ltgt.upperBound(options)
+  this._keyRange = lower || upper ? this.db.makeKeyRange({
+    lower: lower,
+    upper: upper,
+    excludeLower: ltgt.lowerBoundExclusive(options),
+    excludeUpper: ltgt.upperBoundExclusive(options)
+  }) : null
+  this.callback = null
+}
+
+util.inherits(Iterator, AbstractIterator)
+
+Iterator.prototype.createIterator = function() {
+  var self = this
+
+  self.iterator = self.db.iterate(function () {
+    self.onItem.apply(self, arguments)
+  }, {
+    keyRange: self._keyRange,
+    autoContinue: false,
+    order: self._order,
+    onError: function(err) { console.log('horrible error', err) },
+  })
+}
+
+// TODO the limit implementation here just ignores all reads after limit has been reached
+// it should cancel the iterator instead but I don't know how
+Iterator.prototype.onItem = function (value, cursor, cursorTransaction) {
+  if (!cursor && this.callback) {
+    this.callback()
+    this.callback = false
+    return
+  }
+  var shouldCall = true
+
+  if (!!this._limit && this._limit > 0 && this._count++ >= this._limit)
+    shouldCall = false
+
+  if (shouldCall) this.callback(false, cursor.key, cursor.value)
+  if (cursor) cursor['continue']()
+}
+
+Iterator.prototype._next = function (callback) {
+  if (!callback) return new Error('next() requires a callback argument')
+  if (!this._started) {
+    this.createIterator()
+    this._started = true
+  }
+  this.callback = callback
+}
+
+},{"abstract-leveldown":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js","ltgt":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/ltgt/index.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js":[function(require,module,exports){
+(function (process){
+/* Copyright (c) 2013 Rod Vagg, MIT License */
+
+function AbstractChainedBatch (db) {
+  this._db         = db
+  this._operations = []
+  this._written    = false
+}
+
+AbstractChainedBatch.prototype._checkWritten = function () {
+  if (this._written)
+    throw new Error('write() already called on this batch')
+}
+
+AbstractChainedBatch.prototype.put = function (key, value) {
+  this._checkWritten()
+
+  var err = this._db._checkKeyValue(key, 'key', this._db._isBuffer)
+  if (err) throw err
+  err = this._db._checkKeyValue(value, 'value', this._db._isBuffer)
+  if (err) throw err
+
+  if (!this._db._isBuffer(key)) key = String(key)
+  if (!this._db._isBuffer(value)) value = String(value)
+
+  if (typeof this._put == 'function' )
+    this._put(key, value)
+  else
+    this._operations.push({ type: 'put', key: key, value: value })
+
+  return this
+}
+
+AbstractChainedBatch.prototype.del = function (key) {
+  this._checkWritten()
+
+  var err = this._db._checkKeyValue(key, 'key', this._db._isBuffer)
+  if (err) throw err
+
+  if (!this._db._isBuffer(key)) key = String(key)
+
+  if (typeof this._del == 'function' )
+    this._del(key)
+  else
+    this._operations.push({ type: 'del', key: key })
+
+  return this
+}
+
+AbstractChainedBatch.prototype.clear = function () {
+  this._checkWritten()
+
+  this._operations = []
+
+  if (typeof this._clear == 'function' )
+    this._clear()
+
+  return this
+}
+
+AbstractChainedBatch.prototype.write = function (options, callback) {
+  this._checkWritten()
+
+  if (typeof options == 'function')
+    callback = options
+  if (typeof callback != 'function')
+    throw new Error('write() requires a callback argument')
+  if (typeof options != 'object')
+    options = {}
+
+  this._written = true
+
+  if (typeof this._write == 'function' )
+    return this._write(callback)
+
+  if (typeof this._db._batch == 'function')
+    return this._db._batch(this._operations, options, callback)
+
+  process.nextTick(callback)
+}
+
+module.exports = AbstractChainedBatch
+}).call(this,require('_process'))
+},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js":[function(require,module,exports){
+(function (process){
+/* Copyright (c) 2013 Rod Vagg, MIT License */
+
+function AbstractIterator (db) {
+  this.db = db
+  this._ended = false
+  this._nexting = false
+}
+
+AbstractIterator.prototype.next = function (callback) {
+  var self = this
+
+  if (typeof callback != 'function')
+    throw new Error('next() requires a callback argument')
+
+  if (self._ended)
+    return callback(new Error('cannot call next() after end()'))
+  if (self._nexting)
+    return callback(new Error('cannot call next() before previous next() has completed'))
+
+  self._nexting = true
+  if (typeof self._next == 'function') {
+    return self._next(function () {
+      self._nexting = false
+      callback.apply(null, arguments)
+    })
+  }
+
+  process.nextTick(function () {
+    self._nexting = false
+    callback()
+  })
+}
+
+AbstractIterator.prototype.end = function (callback) {
+  if (typeof callback != 'function')
+    throw new Error('end() requires a callback argument')
+
+  if (this._ended)
+    return callback(new Error('end() already called on iterator'))
+
+  this._ended = true
+
+  if (typeof this._end == 'function')
+    return this._end(callback)
+
+  process.nextTick(callback)
+}
+
+module.exports = AbstractIterator
+
+}).call(this,require('_process'))
+},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js":[function(require,module,exports){
+(function (process,Buffer){
+/* Copyright (c) 2013 Rod Vagg, MIT License */
+
+var xtend                = require('xtend')
+  , AbstractIterator     = require('./abstract-iterator')
+  , AbstractChainedBatch = require('./abstract-chained-batch')
+
+function AbstractLevelDOWN (location) {
+  if (!arguments.length || location === undefined)
+    throw new Error('constructor requires at least a location argument')
+
+  if (typeof location != 'string')
+    throw new Error('constructor requires a location string argument')
+
+  this.location = location
+}
+
+AbstractLevelDOWN.prototype.open = function (options, callback) {
+  if (typeof options == 'function')
+    callback = options
+
+  if (typeof callback != 'function')
+    throw new Error('open() requires a callback argument')
+
+  if (typeof options != 'object')
+    options = {}
+
+  if (typeof this._open == 'function')
+    return this._open(options, callback)
+
+  process.nextTick(callback)
+}
+
+AbstractLevelDOWN.prototype.close = function (callback) {
+  if (typeof callback != 'function')
+    throw new Error('close() requires a callback argument')
+
+  if (typeof this._close == 'function')
+    return this._close(callback)
+
+  process.nextTick(callback)
+}
+
+AbstractLevelDOWN.prototype.get = function (key, options, callback) {
+  var err
+
+  if (typeof options == 'function')
+    callback = options
+
+  if (typeof callback != 'function')
+    throw new Error('get() requires a callback argument')
+
+  if (err = this._checkKeyValue(key, 'key', this._isBuffer))
+    return callback(err)
+
+  if (!this._isBuffer(key))
+    key = String(key)
+
+  if (typeof options != 'object')
+    options = {}
+
+  if (typeof this._get == 'function')
+    return this._get(key, options, callback)
+
+  process.nextTick(function () { callback(new Error('NotFound')) })
+}
+
+AbstractLevelDOWN.prototype.put = function (key, value, options, callback) {
+  var err
+
+  if (typeof options == 'function')
+    callback = options
+
+  if (typeof callback != 'function')
+    throw new Error('put() requires a callback argument')
+
+  if (err = this._checkKeyValue(key, 'key', this._isBuffer))
+    return callback(err)
+
+  if (err = this._checkKeyValue(value, 'value', this._isBuffer))
+    return callback(err)
+
+  if (!this._isBuffer(key))
+    key = String(key)
+
+  // coerce value to string in node, don't touch it in browser
+  // (indexeddb can store any JS type)
+  if (!this._isBuffer(value) && !process.browser)
+    value = String(value)
+
+  if (typeof options != 'object')
+    options = {}
+
+  if (typeof this._put == 'function')
+    return this._put(key, value, options, callback)
+
+  process.nextTick(callback)
+}
+
+AbstractLevelDOWN.prototype.del = function (key, options, callback) {
+  var err
+
+  if (typeof options == 'function')
+    callback = options
+
+  if (typeof callback != 'function')
+    throw new Error('del() requires a callback argument')
+
+  if (err = this._checkKeyValue(key, 'key', this._isBuffer))
+    return callback(err)
+
+  if (!this._isBuffer(key))
+    key = String(key)
+
+  if (typeof options != 'object')
+    options = {}
+
+  if (typeof this._del == 'function')
+    return this._del(key, options, callback)
+
+  process.nextTick(callback)
+}
+
+AbstractLevelDOWN.prototype.batch = function (array, options, callback) {
+  if (!arguments.length)
+    return this._chainedBatch()
+
+  if (typeof options == 'function')
+    callback = options
+
+  if (typeof callback != 'function')
+    throw new Error('batch(array) requires a callback argument')
+
+  if (!Array.isArray(array))
+    return callback(new Error('batch(array) requires an array argument'))
+
+  if (typeof options != 'object')
+    options = {}
+
+  var i = 0
+    , l = array.length
+    , e
+    , err
+
+  for (; i < l; i++) {
+    e = array[i]
+    if (typeof e != 'object')
+      continue
+
+    if (err = this._checkKeyValue(e.type, 'type', this._isBuffer))
+      return callback(err)
+
+    if (err = this._checkKeyValue(e.key, 'key', this._isBuffer))
+      return callback(err)
+
+    if (e.type == 'put') {
+      if (err = this._checkKeyValue(e.value, 'value', this._isBuffer))
+        return callback(err)
+    }
+  }
+
+  if (typeof this._batch == 'function')
+    return this._batch(array, options, callback)
+
+  process.nextTick(callback)
+}
+
+//TODO: remove from here, not a necessary primitive
+AbstractLevelDOWN.prototype.approximateSize = function (start, end, callback) {
+  if (   start == null
+      || end == null
+      || typeof start == 'function'
+      || typeof end == 'function') {
+    throw new Error('approximateSize() requires valid `start`, `end` and `callback` arguments')
+  }
+
+  if (typeof callback != 'function')
+    throw new Error('approximateSize() requires a callback argument')
+
+  if (!this._isBuffer(start))
+    start = String(start)
+
+  if (!this._isBuffer(end))
+    end = String(end)
+
+  if (typeof this._approximateSize == 'function')
+    return this._approximateSize(start, end, callback)
+
+  process.nextTick(function () {
+    callback(null, 0)
+  })
+}
+
+AbstractLevelDOWN.prototype._setupIteratorOptions = function (options) {
+  var self = this
+
+  options = xtend(options)
+
+  ;[ 'start', 'end', 'gt', 'gte', 'lt', 'lte' ].forEach(function (o) {
+    if (options[o] && self._isBuffer(options[o]) && options[o].length === 0)
+      delete options[o]
+  })
+
+  options.reverse = !!options.reverse
+
+  // fix `start` so it takes into account gt, gte, lt, lte as appropriate
+  if (options.reverse && options.lt)
+    options.start = options.lt
+  if (options.reverse && options.lte)
+    options.start = options.lte
+  if (!options.reverse && options.gt)
+    options.start = options.gt
+  if (!options.reverse && options.gte)
+    options.start = options.gte
+
+  if ((options.reverse && options.lt && !options.lte)
+    || (!options.reverse && options.gt && !options.gte))
+    options.exclusiveStart = true // start should *not* include matching key
+
+  return options
+}
+
+AbstractLevelDOWN.prototype.iterator = function (options) {
+  if (typeof options != 'object')
+    options = {}
+
+  options = this._setupIteratorOptions(options)
+
+  if (typeof this._iterator == 'function')
+    return this._iterator(options)
+
+  return new AbstractIterator(this)
+}
+
+AbstractLevelDOWN.prototype._chainedBatch = function () {
+  return new AbstractChainedBatch(this)
+}
+
+AbstractLevelDOWN.prototype._isBuffer = function (obj) {
+  return Buffer.isBuffer(obj)
+}
+
+AbstractLevelDOWN.prototype._checkKeyValue = function (obj, type) {
+
+  if (obj === null || obj === undefined)
+    return new Error(type + ' cannot be `null` or `undefined`')
+
+  if (this._isBuffer(obj)) {
+    if (obj.length === 0)
+      return new Error(type + ' cannot be an empty Buffer')
+  } else if (String(obj) === '')
+    return new Error(type + ' cannot be an empty String')
+}
+
+module.exports.AbstractLevelDOWN    = AbstractLevelDOWN
+module.exports.AbstractIterator     = AbstractIterator
+module.exports.AbstractChainedBatch = AbstractChainedBatch
+
+}).call(this,require('_process'),require("buffer").Buffer)
+},{"./abstract-chained-batch":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js","./abstract-iterator":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js","_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js","buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","xtend":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js":[function(require,module,exports){
+module.exports = extend
+
+function extend() {
+    var target = {}
+
+    for (var i = 0; i < arguments.length; i++) {
+        var source = arguments[i]
+
+        for (var key in source) {
+            if (source.hasOwnProperty(key)) {
+                target[key] = source[key]
+            }
+        }
+    }
+
+    return target
+}
+
+},{}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/idb-wrapper/idbstore.js":[function(require,module,exports){
+/*global window:false, self:false, define:false, module:false */
+
+/**
+ * @license IDBWrapper - A cross-browser wrapper for IndexedDB
+ * Copyright (c) 2011 - 2013 Jens Arps
+ * http://jensarps.de/
+ *
+ * Licensed under the MIT (X11) license
+ */
+
+(function (name, definition, global) {
+  if (typeof define === 'function') {
+    define(definition);
+  } else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = definition();
+  } else {
+    global[name] = definition();
+  }
+})('IDBStore', function () {
+
+  'use strict';
+
+  var defaultErrorHandler = function (error) {
+    throw error;
+  };
+
+  var defaults = {
+    storeName: 'Store',
+    storePrefix: 'IDBWrapper-',
+    dbVersion: 1,
+    keyPath: 'id',
+    autoIncrement: true,
+    onStoreReady: function () {
+    },
+    onError: defaultErrorHandler,
+    indexes: []
+  };
+
+  /**
+   *
+   * The IDBStore constructor
+   *
+   * @constructor
+   * @name IDBStore
+   * @version 1.4.1
+   *
+   * @param {Object} [kwArgs] An options object used to configure the store and
+   *  set callbacks
+   * @param {String} [kwArgs.storeName='Store'] The name of the store
+   * @param {String} [kwArgs.storePrefix='IDBWrapper-'] A prefix that is
+   *  internally used to construct the name of the database, which will be
+   *  kwArgs.storePrefix + kwArgs.storeName
+   * @param {Number} [kwArgs.dbVersion=1] The version of the store
+   * @param {String} [kwArgs.keyPath='id'] The key path to use. If you want to
+   *  setup IDBWrapper to work with out-of-line keys, you need to set this to
+   *  `null`
+   * @param {Boolean} [kwArgs.autoIncrement=true] If set to true, IDBStore will
+   *  automatically make sure a unique keyPath value is present on each object
+   *  that is stored.
+   * @param {Function} [kwArgs.onStoreReady] A callback to be called when the
+   *  store is ready to be used.
+   * @param {Function} [kwArgs.onError=throw] A callback to be called when an
+   *  error occurred during instantiation of the store.
+   * @param {Array} [kwArgs.indexes=[]] An array of indexData objects
+   *  defining the indexes to use with the store. For every index to be used
+   *  one indexData object needs to be passed in the array.
+   *  An indexData object is defined as follows:
+   * @param {Object} [kwArgs.indexes.indexData] An object defining the index to
+   *  use
+   * @param {String} kwArgs.indexes.indexData.name The name of the index
+   * @param {String} [kwArgs.indexes.indexData.keyPath] The key path of the index
+   * @param {Boolean} [kwArgs.indexes.indexData.unique] Whether the index is unique
+   * @param {Boolean} [kwArgs.indexes.indexData.multiEntry] Whether the index is multi entry
+   * @param {Function} [onStoreReady] A callback to be called when the store
+   * is ready to be used.
+   * @example
+      // create a store for customers with an additional index over the
+      // `lastname` property.
+      var myCustomerStore = new IDBStore({
+        dbVersion: 1,
+        storeName: 'customer-index',
+        keyPath: 'customerid',
+        autoIncrement: true,
+        onStoreReady: populateTable,
+        indexes: [
+          { name: 'lastname', keyPath: 'lastname', unique: false, multiEntry: false }
+        ]
+      });
+   * @example
+      // create a generic store
+      var myCustomerStore = new IDBStore({
+        storeName: 'my-data-store',
+        onStoreReady: function(){
+          // start working with the store.
+        }
+      });
+   */
+  var IDBStore = function (kwArgs, onStoreReady) {
+
+    if (typeof onStoreReady == 'undefined' && typeof kwArgs == 'function') {
+      onStoreReady = kwArgs;
+    }
+    if (Object.prototype.toString.call(kwArgs) != '[object Object]') {
+      kwArgs = {};
+    }
+
+    for (var key in defaults) {
+      this[key] = typeof kwArgs[key] != 'undefined' ? kwArgs[key] : defaults[key];
+    }
+
+    this.dbName = this.storePrefix + this.storeName;
+    this.dbVersion = parseInt(this.dbVersion, 10) || 1;
+
+    onStoreReady && (this.onStoreReady = onStoreReady);
+
+    var env = typeof window == 'object' ? window : self;
+    this.idb = env.indexedDB || env.webkitIndexedDB || env.mozIndexedDB;
+    this.keyRange = env.IDBKeyRange || env.webkitIDBKeyRange || env.mozIDBKeyRange;
+
+    this.features = {
+      hasAutoIncrement: !env.mozIndexedDB
+    };
+
+    this.consts = {
+      'READ_ONLY':         'readonly',
+      'READ_WRITE':        'readwrite',
+      'VERSION_CHANGE':    'versionchange',
+      'NEXT':              'next',
+      'NEXT_NO_DUPLICATE': 'nextunique',
+      'PREV':              'prev',
+      'PREV_NO_DUPLICATE': 'prevunique'
+    };
+
+    this.openDB();
+  };
+
+  IDBStore.prototype = /** @lends IDBStore */ {
+
+    /**
+     * A pointer to the IDBStore ctor
+     *
+     * @type IDBStore
+     */
+    constructor: IDBStore,
+
+    /**
+     * The version of IDBStore
+     *
+     * @type String
+     */
+    version: '1.4.1',
+
+    /**
+     * A reference to the IndexedDB object
+     *
+     * @type Object
+     */
+    db: null,
+
+    /**
+     * The full name of the IndexedDB used by IDBStore, composed of
+     * this.storePrefix + this.storeName
+     *
+     * @type String
+     */
+    dbName: null,
+
+    /**
+     * The version of the IndexedDB used by IDBStore
+     *
+     * @type Number
+     */
+    dbVersion: null,
+
+    /**
+     * A reference to the objectStore used by IDBStore
+     *
+     * @type Object
+     */
+    store: null,
+
+    /**
+     * The store name
+     *
+     * @type String
+     */
+    storeName: null,
+
+    /**
+     * The key path
+     *
+     * @type String
+     */
+    keyPath: null,
+
+    /**
+     * Whether IDBStore uses autoIncrement
+     *
+     * @type Boolean
+     */
+    autoIncrement: null,
+
+    /**
+     * The indexes used by IDBStore
+     *
+     * @type Array
+     */
+    indexes: null,
+
+    /**
+     * A hashmap of features of the used IDB implementation
+     *
+     * @type Object
+     * @proprty {Boolean} autoIncrement If the implementation supports
+     *  native auto increment
+     */
+    features: null,
+
+    /**
+     * The callback to be called when the store is ready to be used
+     *
+     * @type Function
+     */
+    onStoreReady: null,
+
+    /**
+     * The callback to be called if an error occurred during instantiation
+     * of the store
+     *
+     * @type Function
+     */
+    onError: null,
+
+    /**
+     * The internal insertID counter
+     *
+     * @type Number
+     * @private
+     */
+    _insertIdCount: 0,
+
+    /**
+     * Opens an IndexedDB; called by the constructor.
+     *
+     * Will check if versions match and compare provided index configuration
+     * with existing ones, and update indexes if necessary.
+     *
+     * Will call this.onStoreReady() if everything went well and the store
+     * is ready to use, and this.onError() is something went wrong.
+     *
+     * @private
+     *
+     */
+    openDB: function () {
+
+      var openRequest = this.idb.open(this.dbName, this.dbVersion);
+      var preventSuccessCallback = false;
+
+      openRequest.onerror = function (error) {
+
+        var gotVersionErr = false;
+        if ('error' in error.target) {
+          gotVersionErr = error.target.error.name == 'VersionError';
+        } else if ('errorCode' in error.target) {
+          gotVersionErr = error.target.errorCode == 12;
+        }
+
+        if (gotVersionErr) {
+          this.onError(new Error('The version number provided is lower than the existing one.'));
+        } else {
+          this.onError(error);
+        }
+      }.bind(this);
+
+      openRequest.onsuccess = function (event) {
+
+        if (preventSuccessCallback) {
+          return;
+        }
+
+        if(this.db){
+          this.onStoreReady();
+          return;
+        }
+
+        this.db = event.target.result;
+
+        if(typeof this.db.version == 'string'){
+          this.onError(new Error('The IndexedDB implementation in this browser is outdated. Please upgrade your browser.'));
+          return;
+        }
+
+        if(!this.db.objectStoreNames.contains(this.storeName)){
+          // We should never ever get here.
+          // Lets notify the user anyway.
+          this.onError(new Error('Something is wrong with the IndexedDB implementation in this browser. Please upgrade your browser.'));
+          return;
+        }
+
+        var emptyTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
+        this.store = emptyTransaction.objectStore(this.storeName);
+
+        // check indexes
+        var existingIndexes = Array.prototype.slice.call(this.getIndexList());
+        this.indexes.forEach(function(indexData){
+          var indexName = indexData.name;
+
+          if(!indexName){
+            preventSuccessCallback = true;
+            this.onError(new Error('Cannot create index: No index name given.'));
+            return;
+          }
+
+          this.normalizeIndexData(indexData);
+
+          if(this.hasIndex(indexName)){
+            // check if it complies
+            var actualIndex = this.store.index(indexName);
+            var complies = this.indexComplies(actualIndex, indexData);
+            if(!complies){
+              preventSuccessCallback = true;
+              this.onError(new Error('Cannot modify index "' + indexName + '" for current version. Please bump version number to ' + ( this.dbVersion + 1 ) + '.'));
+            }
+
+            existingIndexes.splice(existingIndexes.indexOf(indexName), 1);
+          } else {
+            preventSuccessCallback = true;
+            this.onError(new Error('Cannot create new index "' + indexName + '" for current version. Please bump version number to ' + ( this.dbVersion + 1 ) + '.'));
+          }
+
+        }, this);
+
+        if (existingIndexes.length) {
+          preventSuccessCallback = true;
+          this.onError(new Error('Cannot delete index(es) "' + existingIndexes.toString() + '" for current version. Please bump version number to ' + ( this.dbVersion + 1 ) + '.'));
+        }
+
+        preventSuccessCallback || this.onStoreReady();
+      }.bind(this);
+
+      openRequest.onupgradeneeded = function(/* IDBVersionChangeEvent */ event){
+
+        this.db = event.target.result;
+
+        if(this.db.objectStoreNames.contains(this.storeName)){
+          this.store = event.target.transaction.objectStore(this.storeName);
+        } else {
+          var optionalParameters = { autoIncrement: this.autoIncrement };
+          if (this.keyPath !== null) {
+            optionalParameters.keyPath = this.keyPath;
+          }
+          this.store = this.db.createObjectStore(this.storeName, optionalParameters);
+        }
+
+        var existingIndexes = Array.prototype.slice.call(this.getIndexList());
+        this.indexes.forEach(function(indexData){
+          var indexName = indexData.name;
+
+          if(!indexName){
+            preventSuccessCallback = true;
+            this.onError(new Error('Cannot create index: No index name given.'));
+          }
+
+          this.normalizeIndexData(indexData);
+
+          if(this.hasIndex(indexName)){
+            // check if it complies
+            var actualIndex = this.store.index(indexName);
+            var complies = this.indexComplies(actualIndex, indexData);
+            if(!complies){
+              // index differs, need to delete and re-create
+              this.store.deleteIndex(indexName);
+              this.store.createIndex(indexName, indexData.keyPath, { unique: indexData.unique, multiEntry: indexData.multiEntry });
+            }
+
+            existingIndexes.splice(existingIndexes.indexOf(indexName), 1);
+          } else {
+            this.store.createIndex(indexName, indexData.keyPath, { unique: indexData.unique, multiEntry: indexData.multiEntry });
+          }
+
+        }, this);
+
+        if (existingIndexes.length) {
+          existingIndexes.forEach(function(_indexName){
+            this.store.deleteIndex(_indexName);
+          }, this);
+        }
+
+      }.bind(this);
+    },
+
+    /**
+     * Deletes the database used for this store if the IDB implementations
+     * provides that functionality.
+     */
+    deleteDatabase: function () {
+      if (this.idb.deleteDatabase) {
+        this.idb.deleteDatabase(this.dbName);
+      }
+    },
+
+    /*********************
+     * data manipulation *
+     *********************/
+
+    /**
+     * Puts an object into the store. If an entry with the given id exists,
+     * it will be overwritten. This method has a different signature for inline
+     * keys and out-of-line keys; please see the examples below.
+     *
+     * @param {*} [key] The key to store. This is only needed if IDBWrapper
+     *  is set to use out-of-line keys. For inline keys - the default scenario -
+     *  this can be omitted.
+     * @param {Object} value The data object to store.
+     * @param {Function} [onSuccess] A callback that is called if insertion
+     *  was successful.
+     * @param {Function} [onError] A callback that is called if insertion
+     *  failed.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     * @example
+        // Storing an object, using inline keys (the default scenario):
+        var myCustomer = {
+          customerid: 2346223,
+          lastname: 'Doe',
+          firstname: 'John'
+        };
+        myCustomerStore.put(myCustomer, mySuccessHandler, myErrorHandler);
+        // Note that passing success- and error-handlers is optional.
+     * @example
+        // Storing an object, using out-of-line keys:
+       var myCustomer = {
+         lastname: 'Doe',
+         firstname: 'John'
+       };
+       myCustomerStore.put(2346223, myCustomer, mySuccessHandler, myErrorHandler);
+      // Note that passing success- and error-handlers is optional.
+     */
+    put: function (key, value, onSuccess, onError) {
+      if (this.keyPath !== null) {
+        onError = onSuccess;
+        onSuccess = value;
+        value = key;
+      }
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+
+      var hasSuccess = false,
+          result = null,
+          putRequest;
+
+      var putTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
+      putTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      putTransaction.onabort = onError;
+      putTransaction.onerror = onError;
+
+      if (this.keyPath !== null) { // in-line keys
+        this._addIdPropertyIfNeeded(value);
+        putRequest = putTransaction.objectStore(this.storeName).put(value);
+      } else { // out-of-line keys
+        putRequest = putTransaction.objectStore(this.storeName).put(value, key);
+      }
+      putRequest.onsuccess = function (event) {
+        hasSuccess = true;
+        result = event.target.result;
+      };
+      putRequest.onerror = onError;
+
+      return putTransaction;
+    },
+
+    /**
+     * Retrieves an object from the store. If no entry exists with the given id,
+     * the success handler will be called with null as first and only argument.
+     *
+     * @param {*} key The id of the object to fetch.
+     * @param {Function} [onSuccess] A callback that is called if fetching
+     *  was successful. Will receive the object as only argument.
+     * @param {Function} [onError] A callback that will be called if an error
+     *  occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    get: function (key, onSuccess, onError) {
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+
+      var hasSuccess = false,
+          result = null;
+      
+      var getTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
+      getTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      getTransaction.onabort = onError;
+      getTransaction.onerror = onError;
+      var getRequest = getTransaction.objectStore(this.storeName).get(key);
+      getRequest.onsuccess = function (event) {
+        hasSuccess = true;
+        result = event.target.result;
+      };
+      getRequest.onerror = onError;
+
+      return getTransaction;
+    },
+
+    /**
+     * Removes an object from the store.
+     *
+     * @param {*} key The id of the object to remove.
+     * @param {Function} [onSuccess] A callback that is called if the removal
+     *  was successful.
+     * @param {Function} [onError] A callback that will be called if an error
+     *  occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    remove: function (key, onSuccess, onError) {
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+
+      var hasSuccess = false,
+          result = null;
+
+      var removeTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
+      removeTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      removeTransaction.onabort = onError;
+      removeTransaction.onerror = onError;
+
+      var deleteRequest = removeTransaction.objectStore(this.storeName)['delete'](key);
+      deleteRequest.onsuccess = function (event) {
+        hasSuccess = true;
+        result = event.target.result;
+      };
+      deleteRequest.onerror = onError;
+
+      return removeTransaction;
+    },
+
+    /**
+     * Runs a batch of put and/or remove operations on the store.
+     *
+     * @param {Array} dataArray An array of objects containing the operation to run
+     *  and the data object (for put operations).
+     * @param {Function} [onSuccess] A callback that is called if all operations
+     *  were successful.
+     * @param {Function} [onError] A callback that is called if an error
+     *  occurred during one of the operations.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    batch: function (dataArray, onSuccess, onError) {
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+
+      if(Object.prototype.toString.call(dataArray) != '[object Array]'){
+        onError(new Error('dataArray argument must be of type Array.'));
+      }
+      var batchTransaction = this.db.transaction([this.storeName] , this.consts.READ_WRITE);
+      batchTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(hasSuccess);
+      };
+      batchTransaction.onabort = onError;
+      batchTransaction.onerror = onError;
+      
+      var count = dataArray.length;
+      var called = false;
+      var hasSuccess = false;
+
+      var onItemSuccess = function () {
+        count--;
+        if (count === 0 && !called) {
+          called = true;
+          hasSuccess = true;
+        }
+      };
+
+      dataArray.forEach(function (operation) {
+        var type = operation.type;
+        var key = operation.key;
+        var value = operation.value;
+
+        var onItemError = function (err) {
+          batchTransaction.abort();
+          if (!called) {
+            called = true;
+            onError(err, type, key);
+          }
+        };
+
+        if (type == 'remove') {
+          var deleteRequest = batchTransaction.objectStore(this.storeName)['delete'](key);
+          deleteRequest.onsuccess = onItemSuccess;
+          deleteRequest.onerror = onItemError;
+        } else if (type == 'put') {
+          var putRequest;
+          if (this.keyPath !== null) { // in-line keys
+            this._addIdPropertyIfNeeded(value);
+            putRequest = batchTransaction.objectStore(this.storeName).put(value);
+          } else { // out-of-line keys
+            putRequest = batchTransaction.objectStore(this.storeName).put(value, key);
+          }
+          putRequest.onsuccess = onItemSuccess;
+          putRequest.onerror = onItemError;
+        }
+      }, this);
+
+      return batchTransaction;
+    },
+
+    /**
+     * Takes an array of objects and stores them in a single transaction.
+     *
+     * @param {Array} dataArray An array of objects to store
+     * @param {Function} [onSuccess] A callback that is called if all operations
+     *  were successful.
+     * @param {Function} [onError] A callback that is called if an error
+     *  occurred during one of the operations.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    putBatch: function (dataArray, onSuccess, onError) {
+      var batchData = dataArray.map(function(item){
+        return { type: 'put', value: item };
+      });
+
+      return this.batch(batchData, onSuccess, onError);
+    },
+
+    /**
+     * Takes an array of keys and removes matching objects in a single
+     * transaction.
+     *
+     * @param {Array} keyArray An array of keys to remove
+     * @param {Function} [onSuccess] A callback that is called if all operations
+     *  were successful.
+     * @param {Function} [onError] A callback that is called if an error
+     *  occurred during one of the operations.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    removeBatch: function (keyArray, onSuccess, onError) {
+      var batchData = keyArray.map(function(key){
+        return { type: 'remove', key: key };
+      });
+
+      return this.batch(batchData, onSuccess, onError);
+    },
+
+    /**
+     * Takes an array of keys and fetches matching objects
+     *
+     * @param {Array} keyArray An array of keys identifying the objects to fetch
+     * @param {Function} [onSuccess] A callback that is called if all operations
+     *  were successful.
+     * @param {Function} [onError] A callback that is called if an error
+     *  occurred during one of the operations.
+     * @param {String} [arrayType='sparse'] The type of array to pass to the
+     *  success handler. May be one of 'sparse', 'dense' or 'skip'. Defaults to
+     *  'sparse'. This parameter specifies how to handle the situation if a get
+     *  operation did not throw an error, but there was no matching object in
+     *  the database. In most cases, 'sparse' provides the most desired
+     *  behavior. See the examples for details.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     * @example
+     // given that there are two objects in the database with the keypath
+     // values 1 and 2, and the call looks like this:
+     myStore.getBatch([1, 5, 2], onError, function (data) { … }, arrayType);
+
+     // this is what the `data` array will be like:
+
+     // arrayType == 'sparse':
+     // data is a sparse array containing two entries and having a length of 3:
+       [Object, 2: Object]
+         0: Object
+         2: Object
+         length: 3
+         __proto__: Array[0]
+     // calling forEach on data will result in the callback being called two
+     // times, with the index parameter matching the index of the key in the
+     // keyArray.
+
+     // arrayType == 'dense':
+     // data is a dense array containing three entries and having a length of 3,
+     // where data[1] is of type undefined:
+       [Object, undefined, Object]
+         0: Object
+         1: undefined
+         2: Object
+         length: 3
+         __proto__: Array[0]
+     // calling forEach on data will result in the callback being called three
+     // times, with the index parameter matching the index of the key in the
+     // keyArray, but the second call will have undefined as first argument.
+
+     // arrayType == 'skip':
+     // data is a dense array containing two entries and having a length of 2:
+       [Object, Object]
+         0: Object
+         1: Object
+         length: 2
+         __proto__: Array[0]
+     // calling forEach on data will result in the callback being called two
+     // times, with the index parameter not matching the index of the key in the
+     // keyArray.
+     */
+    getBatch: function (keyArray, onSuccess, onError, arrayType) {
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+      arrayType || (arrayType = 'sparse');
+
+      if(Object.prototype.toString.call(keyArray) != '[object Array]'){
+        onError(new Error('keyArray argument must be of type Array.'));
+      }
+      var batchTransaction = this.db.transaction([this.storeName] , this.consts.READ_ONLY);
+      batchTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      batchTransaction.onabort = onError;
+      batchTransaction.onerror = onError;
+
+      var data = [];
+      var count = keyArray.length;
+      var called = false;
+      var hasSuccess = false;
+      var result = null;
+
+      var onItemSuccess = function (event) {
+        if (event.target.result || arrayType == 'dense') {
+          data.push(event.target.result);
+        } else if (arrayType == 'sparse') {
+          data.length++;
+        }
+        count--;
+        if (count === 0) {
+          called = true;
+          hasSuccess = true;
+          result = data;
+        }
+      };
+
+      keyArray.forEach(function (key) {
+
+        var onItemError = function (err) {
+          called = true;
+          result = err;
+          onError(err);
+          batchTransaction.abort();
+        };
+
+        var getRequest = batchTransaction.objectStore(this.storeName).get(key);
+        getRequest.onsuccess = onItemSuccess;
+        getRequest.onerror = onItemError;
+
+      }, this);
+
+      return batchTransaction;
+    },
+
+    /**
+     * Fetches all entries in the store.
+     *
+     * @param {Function} [onSuccess] A callback that is called if the operation
+     *  was successful. Will receive an array of objects.
+     * @param {Function} [onError] A callback that will be called if an error
+     *  occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    getAll: function (onSuccess, onError) {
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+      var getAllTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
+      var store = getAllTransaction.objectStore(this.storeName);
+      if (store.getAll) {
+        this._getAllNative(getAllTransaction, store, onSuccess, onError);
+      } else {
+        this._getAllCursor(getAllTransaction, store, onSuccess, onError);
+      }
+
+      return getAllTransaction;
+    },
+
+    /**
+     * Implements getAll for IDB implementations that have a non-standard
+     * getAll() method.
+     *
+     * @param {Object} getAllTransaction An open READ transaction.
+     * @param {Object} store A reference to the store.
+     * @param {Function} onSuccess A callback that will be called if the
+     *  operation was successful.
+     * @param {Function} onError A callback that will be called if an
+     *  error occurred during the operation.
+     * @private
+     */
+    _getAllNative: function (getAllTransaction, store, onSuccess, onError) {
+      var hasSuccess = false,
+          result = null;
+
+      getAllTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      getAllTransaction.onabort = onError;
+      getAllTransaction.onerror = onError;
+
+      var getAllRequest = store.getAll();
+      getAllRequest.onsuccess = function (event) {
+        hasSuccess = true;
+        result = event.target.result;
+      };
+      getAllRequest.onerror = onError;
+    },
+
+    /**
+     * Implements getAll for IDB implementations that do not have a getAll()
+     * method.
+     *
+     * @param {Object} getAllTransaction An open READ transaction.
+     * @param {Object} store A reference to the store.
+     * @param {Function} onSuccess A callback that will be called if the
+     *  operation was successful.
+     * @param {Function} onError A callback that will be called if an
+     *  error occurred during the operation.
+     * @private
+     */
+    _getAllCursor: function (getAllTransaction, store, onSuccess, onError) {
+      var all = [],
+          hasSuccess = false,
+          result = null;
+
+      getAllTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      getAllTransaction.onabort = onError;
+      getAllTransaction.onerror = onError;
+
+      var cursorRequest = store.openCursor();
+      cursorRequest.onsuccess = function (event) {
+        var cursor = event.target.result;
+        if (cursor) {
+          all.push(cursor.value);
+          cursor['continue']();
+        }
+        else {
+          hasSuccess = true;
+          result = all;
+        }
+      };
+      cursorRequest.onError = onError;
+    },
+
+    /**
+     * Clears the store, i.e. deletes all entries in the store.
+     *
+     * @param {Function} [onSuccess] A callback that will be called if the
+     *  operation was successful.
+     * @param {Function} [onError] A callback that will be called if an
+     *  error occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    clear: function (onSuccess, onError) {
+      onError || (onError = defaultErrorHandler);
+      onSuccess || (onSuccess = noop);
+
+      var hasSuccess = false,
+          result = null;
+
+      var clearTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
+      clearTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      clearTransaction.onabort = onError;
+      clearTransaction.onerror = onError;
+
+      var clearRequest = clearTransaction.objectStore(this.storeName).clear();
+      clearRequest.onsuccess = function (event) {
+        hasSuccess = true;
+        result = event.target.result;
+      };
+      clearRequest.onerror = onError;
+
+      return clearTransaction;
+    },
+
+    /**
+     * Checks if an id property needs to present on a object and adds one if
+     * necessary.
+     *
+     * @param {Object} dataObj The data object that is about to be stored
+     * @private
+     */
+    _addIdPropertyIfNeeded: function (dataObj) {
+      if (!this.features.hasAutoIncrement && typeof dataObj[this.keyPath] == 'undefined') {
+        dataObj[this.keyPath] = this._insertIdCount++ + Date.now();
+      }
+    },
+
+    /************
+     * indexing *
+     ************/
+
+    /**
+     * Returns a DOMStringList of index names of the store.
+     *
+     * @return {DOMStringList} The list of index names
+     */
+    getIndexList: function () {
+      return this.store.indexNames;
+    },
+
+    /**
+     * Checks if an index with the given name exists in the store.
+     *
+     * @param {String} indexName The name of the index to look for
+     * @return {Boolean} Whether the store contains an index with the given name
+     */
+    hasIndex: function (indexName) {
+      return this.store.indexNames.contains(indexName);
+    },
+
+    /**
+     * Normalizes an object containing index data and assures that all
+     * properties are set.
+     *
+     * @param {Object} indexData The index data object to normalize
+     * @param {String} indexData.name The name of the index
+     * @param {String} [indexData.keyPath] The key path of the index
+     * @param {Boolean} [indexData.unique] Whether the index is unique
+     * @param {Boolean} [indexData.multiEntry] Whether the index is multi entry
+     */
+    normalizeIndexData: function (indexData) {
+      indexData.keyPath = indexData.keyPath || indexData.name;
+      indexData.unique = !!indexData.unique;
+      indexData.multiEntry = !!indexData.multiEntry;
+    },
+
+    /**
+     * Checks if an actual index complies with an expected index.
+     *
+     * @param {Object} actual The actual index found in the store
+     * @param {Object} expected An Object describing an expected index
+     * @return {Boolean} Whether both index definitions are identical
+     */
+    indexComplies: function (actual, expected) {
+      var complies = ['keyPath', 'unique', 'multiEntry'].every(function (key) {
+        // IE10 returns undefined for no multiEntry
+        if (key == 'multiEntry' && actual[key] === undefined && expected[key] === false) {
+          return true;
+        }
+        // Compound keys
+        if (key == 'keyPath' && Object.prototype.toString.call(expected[key]) == '[object Array]') {
+          var exp = expected.keyPath;
+          var act = actual.keyPath;
+
+          // IE10 can't handle keyPath sequences and stores them as a string.
+          // The index will be unusable there, but let's still return true if
+          // the keyPath sequence matches.
+          if (typeof act == 'string') {
+            return exp.toString() == act;
+          }
+
+          // Chrome/Opera stores keyPath squences as DOMStringList, Firefox
+          // as Array
+          if ( ! (typeof act.contains == 'function' || typeof act.indexOf == 'function') ) {
+            return false;
+          }
+
+          if (act.length !== exp.length) {
+            return false;
+          }
+
+          for (var i = 0, m = exp.length; i<m; i++) {
+            if ( ! ( (act.contains && act.contains(exp[i])) || act.indexOf(exp[i] !== -1) )) {
+              return false;
+            }
+          }
+          return true;
+        }
+        return expected[key] == actual[key];
+      });
+      return complies;
+    },
+
+    /**********
+     * cursor *
+     **********/
+
+    /**
+     * Iterates over the store using the given options and calling onItem
+     * for each entry matching the options.
+     *
+     * @param {Function} onItem A callback to be called for each match
+     * @param {Object} [options] An object defining specific options
+     * @param {Object} [options.index=null] An IDBIndex to operate on
+     * @param {String} [options.order=ASC] The order in which to provide the
+     *  results, can be 'DESC' or 'ASC'
+     * @param {Boolean} [options.autoContinue=true] Whether to automatically
+     *  iterate the cursor to the next result
+     * @param {Boolean} [options.filterDuplicates=false] Whether to exclude
+     *  duplicate matches
+     * @param {Object} [options.keyRange=null] An IDBKeyRange to use
+     * @param {Boolean} [options.writeAccess=false] Whether grant write access
+     *  to the store in the onItem callback
+     * @param {Function} [options.onEnd=null] A callback to be called after
+     *  iteration has ended
+     * @param {Function} [options.onError=throw] A callback to be called
+     *  if an error occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    iterate: function (onItem, options) {
+      options = mixin({
+        index: null,
+        order: 'ASC',
+        autoContinue: true,
+        filterDuplicates: false,
+        keyRange: null,
+        writeAccess: false,
+        onEnd: null,
+        onError: defaultErrorHandler
+      }, options || {});
+
+      var directionType = options.order.toLowerCase() == 'desc' ? 'PREV' : 'NEXT';
+      if (options.filterDuplicates) {
+        directionType += '_NO_DUPLICATE';
+      }
+
+      var hasSuccess = false;
+      var cursorTransaction = this.db.transaction([this.storeName], this.consts[options.writeAccess ? 'READ_WRITE' : 'READ_ONLY']);
+      var cursorTarget = cursorTransaction.objectStore(this.storeName);
+      if (options.index) {
+        cursorTarget = cursorTarget.index(options.index);
+      }
+
+      cursorTransaction.oncomplete = function () {
+        if (!hasSuccess) {
+          options.onError(null);
+          return;
+        }
+        if (options.onEnd) {
+          options.onEnd();
+        } else {
+          onItem(null);
+        }
+      };
+      cursorTransaction.onabort = options.onError;
+      cursorTransaction.onerror = options.onError;
+
+      var cursorRequest = cursorTarget.openCursor(options.keyRange, this.consts[directionType]);
+      cursorRequest.onerror = options.onError;
+      cursorRequest.onsuccess = function (event) {
+        var cursor = event.target.result;
+        if (cursor) {
+          onItem(cursor.value, cursor, cursorTransaction);
+          if (options.autoContinue) {
+            cursor['continue']();
+          }
+        } else {
+          hasSuccess = true;
+        }
+      };
+
+      return cursorTransaction;
+    },
+
+    /**
+     * Runs a query against the store and passes an array containing matched
+     * objects to the success handler.
+     *
+     * @param {Function} onSuccess A callback to be called when the operation
+     *  was successful.
+     * @param {Object} [options] An object defining specific query options
+     * @param {Object} [options.index=null] An IDBIndex to operate on
+     * @param {String} [options.order=ASC] The order in which to provide the
+     *  results, can be 'DESC' or 'ASC'
+     * @param {Boolean} [options.filterDuplicates=false] Whether to exclude
+     *  duplicate matches
+     * @param {Object} [options.keyRange=null] An IDBKeyRange to use
+     * @param {Function} [options.onError=throw] A callback to be called if an error
+     *  occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    query: function (onSuccess, options) {
+      var result = [];
+      options = options || {};
+      options.onEnd = function () {
+        onSuccess(result);
+      };
+      return this.iterate(function (item) {
+        result.push(item);
+      }, options);
+    },
+
+    /**
+     *
+     * Runs a query against the store, but only returns the number of matches
+     * instead of the matches itself.
+     *
+     * @param {Function} onSuccess A callback to be called if the opration
+     *  was successful.
+     * @param {Object} [options] An object defining specific options
+     * @param {Object} [options.index=null] An IDBIndex to operate on
+     * @param {Object} [options.keyRange=null] An IDBKeyRange to use
+     * @param {Function} [options.onError=throw] A callback to be called if an error
+     *  occurred during the operation.
+     * @returns {IDBTransaction} The transaction used for this operation.
+     */
+    count: function (onSuccess, options) {
+
+      options = mixin({
+        index: null,
+        keyRange: null
+      }, options || {});
+
+      var onError = options.onError || defaultErrorHandler;
+
+      var hasSuccess = false,
+          result = null;
+
+      var cursorTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
+      cursorTransaction.oncomplete = function () {
+        var callback = hasSuccess ? onSuccess : onError;
+        callback(result);
+      };
+      cursorTransaction.onabort = onError;
+      cursorTransaction.onerror = onError;
+
+      var cursorTarget = cursorTransaction.objectStore(this.storeName);
+      if (options.index) {
+        cursorTarget = cursorTarget.index(options.index);
+      }
+      var countRequest = cursorTarget.count(options.keyRange);
+      countRequest.onsuccess = function (evt) {
+        hasSuccess = true;
+        result = evt.target.result;
+      };
+      countRequest.onError = onError;
+
+      return cursorTransaction;
+    },
+
+    /**************/
+    /* key ranges */
+    /**************/
+
+    /**
+     * Creates a key range using specified options. This key range can be
+     * handed over to the count() and iterate() methods.
+     *
+     * Note: You must provide at least one or both of "lower" or "upper" value.
+     *
+     * @param {Object} options The options for the key range to create
+     * @param {*} [options.lower] The lower bound
+     * @param {Boolean} [options.excludeLower] Whether to exclude the lower
+     *  bound passed in options.lower from the key range
+     * @param {*} [options.upper] The upper bound
+     * @param {Boolean} [options.excludeUpper] Whether to exclude the upper
+     *  bound passed in options.upper from the key range
+     * @param {*} [options.only] A single key value. Use this if you need a key
+     *  range that only includes one value for a key. Providing this
+     *  property invalidates all other properties.
+     * @return {Object} The IDBKeyRange representing the specified options
+     */
+    makeKeyRange: function(options){
+      /*jshint onecase:true */
+      var keyRange,
+          hasLower = typeof options.lower != 'undefined',
+          hasUpper = typeof options.upper != 'undefined',
+          isOnly = typeof options.only != 'undefined';
+
+      switch(true){
+        case isOnly:
+          keyRange = this.keyRange.only(options.only);
+          break;
+        case hasLower && hasUpper:
+          keyRange = this.keyRange.bound(options.lower, options.upper, options.excludeLower, options.excludeUpper);
+          break;
+        case hasLower:
+          keyRange = this.keyRange.lowerBound(options.lower, options.excludeLower);
+          break;
+        case hasUpper:
+          keyRange = this.keyRange.upperBound(options.upper, options.excludeUpper);
+          break;
+        default:
+          throw new Error('Cannot create KeyRange. Provide one or both of "lower" or "upper" value, or an "only" value.');
+      }
+
+      return keyRange;
+
+    }
+
+  };
+
+  /** helpers **/
+
+  var noop = function () {
+  };
+  var empty = {};
+  var mixin = function (target, source) {
+    var name, s;
+    for (name in source) {
+      s = source[name];
+      if (s !== empty[name] && s !== target[name]) {
+        target[name] = s;
+      }
+    }
+    return target;
+  };
+
+  IDBStore.version = IDBStore.prototype.version;
+
+  return IDBStore;
+
+}, this);
+
+},{}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/isbuffer/index.js":[function(require,module,exports){
+var Buffer = require('buffer').Buffer;
+
+module.exports = isBuffer;
+
+function isBuffer (o) {
+  return Buffer.isBuffer(o)
+    || /\[object (.+Array|Array.+)\]/.test(Object.prototype.toString.call(o));
+}
+
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/ltgt/index.js":[function(require,module,exports){
+(function (Buffer){
+
+exports.compare = function (a, b) {
+
+  if(Buffer.isBuffer(a)) {
+    var l = Math.min(a.length, b.length)
+    for(var i = 0; i < l; i++) {
+      var cmp = a[i] - b[i]
+      if(cmp) return cmp
+    }
+    return a.length - b.length
+  }
+
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+function has(obj, key) {
+  return Object.hasOwnProperty.call(obj, key)
+}
+
+// to be compatible with the current abstract-leveldown tests
+// nullish or empty strings.
+// I could use !!val but I want to permit numbers and booleans,
+// if possible.
+
+function isDef (val) {
+  return val !== undefined && val !== ''
+}
+
+function has (range, name) {
+  return Object.hasOwnProperty.call(range, name)
+}
+
+function hasKey(range, name) {
+  return Object.hasOwnProperty.call(range, name) && name
+}
+
+var lowerBoundKey = exports.lowerBoundKey = function (range) {
+    return (
+       hasKey(range, 'gt')
+    || hasKey(range, 'gte')
+    || hasKey(range, 'min')
+    || (range.reverse ? hasKey(range, 'end') : hasKey(range, 'start'))
+    || undefined
+    )
+}
+
+var lowerBound = exports.lowerBound = function (range) {
+  var k = lowerBoundKey(range)
+  return k && range[k]
+  return (
+      has(range, 'gt')                      ? range.gt
+    : has(range, 'gte')                     ? range.gte
+    : has(range, 'min')                     ? range.min
+    : has(range, 'start') && !range.reverse ? range.start
+    : has(range, 'end')   && range.reverse  ? range.end
+    :                                         undefined
+  )
+}
+
+exports.lowerBoundInclusive = function (range) {
+  return has(range, 'gt') ? false : true
+}
+
+exports.upperBoundInclusive =
+  function (range) {
+    return has(range, 'lt') || !range.minEx ? false : true
+  }
+
+var lowerBoundExclusive = exports.lowerBoundExclusive =
+  function (range) {
+    return has(range, 'gt') || range.minEx ? true : false
+  }
+
+var upperBoundExclusive = exports.upperBoundExclusive =
+  function (range) {
+    return has(range, 'lt') ? true : false
+  }
+
+var upperBoundKey = exports.upperBoundKey = function (range) {
+    return (
+       hasKey(range, 'lt')
+    || hasKey(range, 'lte')
+    || hasKey(range, 'max')
+    || (range.reverse ? hasKey(range, 'start') : hasKey(range, 'end'))
+    || undefined
+    )
+}
+
+var upperBound = exports.upperBound = function (range) {
+  var k = upperBoundKey(range)
+  return k && range[k]
+}
+
+function id (e) { return e }
+
+exports.toLtgt = function (range, _range, map, lower, upper) {
+  _range = _range || {}
+  map = map || id
+  var defaults = arguments.length > 3
+  var lb = exports.lowerBoundKey(range)
+  var ub = exports.upperBoundKey(range)
+  if(lb) {
+    if(lb === 'gt') _range.gt = map(range.gt)
+    else            _range.gte = map(range[lb])
+  }
+  else if(defaults)
+    _range.gte = lower
+
+  if(ub) {
+    if(ub === 'lt') _range.lt = map(range.lt)
+    else            _range.lte = map(range[ub])
+  }
+  else if(defaults)
+    _range.lte = upper
+
+  _range.reverse = !!range.reverse
+
+  return _range
+}
+
+exports.contains = function (range, key, compare) {
+  compare = compare || exports.compare
+
+  var lb = lowerBound(range)
+  if(isDef(lb)) {
+    var cmp = compare(key, lb)
+    if(cmp < 0 || (cmp === 0 && lowerBoundExclusive(range)))
+      return false
+  }
+
+  var ub = upperBound(range)
+  if(isDef(ub)) {
+    var cmp = compare(key, ub)
+    if(cmp > 0 || (cmp === 0) && upperBoundExclusive(range))
+      return false
+  }
+
+  return true
+}
+
+exports.filter = function (range, compare) {
+  return function (key) {
+    return exports.contains(range, key, compare)
+  }
+}
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/typedarray-to-buffer/index.js":[function(require,module,exports){
+(function (Buffer){
+/**
+ * Convert a typed array to a Buffer without a copy
+ *
+ * Author:   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * License:  MIT
+ *
+ * `npm install typedarray-to-buffer`
+ */
+
+module.exports = function (arr) {
+  if (typeof Buffer._augment === 'function' && Buffer.TYPED_ARRAY_SUPPORT) {
+    // If `Buffer` is from the `buffer` module and this browser supports typed arrays,
+    // then augment it with all the `Buffer` methods.
+    return Buffer._augment(arr)
+  } else {
+    // Otherwise, fallback to creating a `Buffer` with a copy.
+    return new Buffer(arr)
+  }
+}
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/has-keys.js":[function(require,module,exports){
+module.exports = hasKeys
+
+function hasKeys(source) {
+    return source !== null &&
+        (typeof source === "object" ||
+        typeof source === "function")
+}
+
+},{}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/index.js":[function(require,module,exports){
+var Keys = require("object-keys")
+var hasKeys = require("./has-keys")
+
+module.exports = extend
+
+function extend() {
+    var target = {}
+
+    for (var i = 0; i < arguments.length; i++) {
+        var source = arguments[i]
+
+        if (!hasKeys(source)) {
+            continue
+        }
+
+        var keys = Keys(source)
+
+        for (var j = 0; j < keys.length; j++) {
+            var name = keys[j]
+            target[name] = source[name]
+        }
+    }
+
+    return target
+}
+
+},{"./has-keys":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/has-keys.js","object-keys":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/foreach.js":[function(require,module,exports){
+var hasOwn = Object.prototype.hasOwnProperty;
+var toString = Object.prototype.toString;
+
+var isFunction = function (fn) {
+	var isFunc = (typeof fn === 'function' && !(fn instanceof RegExp)) || toString.call(fn) === '[object Function]';
+	if (!isFunc && typeof window !== 'undefined') {
+		isFunc = fn === window.setTimeout || fn === window.alert || fn === window.confirm || fn === window.prompt;
+	}
+	return isFunc;
+};
+
+module.exports = function forEach(obj, fn) {
+	if (!isFunction(fn)) {
+		throw new TypeError('iterator must be a function');
+	}
+	var i, k,
+		isString = typeof obj === 'string',
+		l = obj.length,
+		context = arguments.length > 2 ? arguments[2] : null;
+	if (l === +l) {
+		for (i = 0; i < l; i++) {
+			if (context === null) {
+				fn(isString ? obj.charAt(i) : obj[i], i, obj);
+			} else {
+				fn.call(context, isString ? obj.charAt(i) : obj[i], i, obj);
+			}
+		}
+	} else {
+		for (k in obj) {
+			if (hasOwn.call(obj, k)) {
+				if (context === null) {
+					fn(obj[k], k, obj);
+				} else {
+					fn.call(context, obj[k], k, obj);
+				}
+			}
+		}
+	}
+};
+
+
+},{}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/index.js":[function(require,module,exports){
+module.exports = Object.keys || require('./shim');
+
+
+},{"./shim":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/shim.js"}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/isArguments.js":[function(require,module,exports){
+var toString = Object.prototype.toString;
+
+module.exports = function isArguments(value) {
+	var str = toString.call(value);
+	var isArguments = str === '[object Arguments]';
+	if (!isArguments) {
+		isArguments = str !== '[object Array]'
+			&& value !== null
+			&& typeof value === 'object'
+			&& typeof value.length === 'number'
+			&& value.length >= 0
+			&& toString.call(value.callee) === '[object Function]';
+	}
+	return isArguments;
+};
+
+
+},{}],"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/shim.js":[function(require,module,exports){
+(function () {
+	"use strict";
+
+	// modified from https://github.com/kriskowal/es5-shim
+	var has = Object.prototype.hasOwnProperty,
+		toString = Object.prototype.toString,
+		forEach = require('./foreach'),
+		isArgs = require('./isArguments'),
+		hasDontEnumBug = !({'toString': null}).propertyIsEnumerable('toString'),
+		hasProtoEnumBug = (function () {}).propertyIsEnumerable('prototype'),
+		dontEnums = [
+			"toString",
+			"toLocaleString",
+			"valueOf",
+			"hasOwnProperty",
+			"isPrototypeOf",
+			"propertyIsEnumerable",
+			"constructor"
+		],
+		keysShim;
+
+	keysShim = function keys(object) {
+		var isObject = object !== null && typeof object === 'object',
+			isFunction = toString.call(object) === '[object Function]',
+			isArguments = isArgs(object),
+			theKeys = [];
+
+		if (!isObject && !isFunction && !isArguments) {
+			throw new TypeError("Object.keys called on a non-object");
+		}
+
+		if (isArguments) {
+			forEach(object, function (value) {
+				theKeys.push(value);
+			});
+		} else {
+			var name,
+				skipProto = hasProtoEnumBug && isFunction;
+
+			for (name in object) {
+				if (!(skipProto && name === 'prototype') && has.call(object, name)) {
+					theKeys.push(name);
+				}
+			}
+		}
+
+		if (hasDontEnumBug) {
+			var ctor = object.constructor,
+				skipConstructor = ctor && ctor.prototype === object;
+
+			forEach(dontEnums, function (dontEnum) {
+				if (!(skipConstructor && dontEnum === 'constructor') && has.call(object, dontEnum)) {
+					theKeys.push(dontEnum);
+				}
+			});
+		}
+		return theKeys;
+	};
+
+	module.exports = keysShim;
+}());
+
+
+},{"./foreach":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/foreach.js","./isArguments":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/xtend/node_modules/object-keys/isArguments.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/batch.js":[function(require,module,exports){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var util          = require('./util')
+  , WriteError    = require('./errors').WriteError
+
+  , getOptions    = util.getOptions
+  , dispatchError = util.dispatchError
+
+function Batch (levelup, codec) {
+  this._levelup = levelup
+  this._codec = codec
+  this.batch = levelup.db.batch()
+  this.ops = []
+}
+
+Batch.prototype.put = function (key_, value_, options) {
+  options = getOptions(this._levelup, options)
+
+  var key   = this._codec.encodeKey(key_, options)
+    , value = this._codec.encodeValue(value_, options)
+
+  try {
+    this.batch.put(key, value)
+  } catch (e) {
+    throw new WriteError(e)
+  }
+  this.ops.push({ type : 'put', key : key, value : value })
+
+  return this
+}
+
+Batch.prototype.del = function (key_, options) {
+  options = getOptions(this._levelup, options)
+
+  var key = this._codec.encodeKey(key_, options)
+
+  try {
+    this.batch.del(key)
+  } catch (err) {
+    throw new WriteError(err)
+  }
+  this.ops.push({ type : 'del', key : key })
+
+  return this
+}
+
+Batch.prototype.clear = function () {
+  try {
+    this.batch.clear()
+  } catch (err) {
+    throw new WriteError(err)
+  }
+
+  this.ops = []
+  return this
+}
+
+Batch.prototype.write = function (callback) {
+  var levelup = this._levelup
+    , ops     = this.ops
+
+  try {
+    this.batch.write(function (err) {
+      if (err)
+        return dispatchError(levelup, new WriteError(err), callback)
+      levelup.emit('batch', ops)
+      if (callback)
+        callback()
+    })
+  } catch (err) {
+    throw new WriteError(err)
+  }
+}
+
+module.exports = Batch
+
+},{"./errors":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/errors.js","./util":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/codec.js":[function(require,module,exports){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var encodings = require('./encodings')
+
+function getKeyEncoder (options, op) {
+  var type = ((op && op.keyEncoding) || options.keyEncoding) || 'utf8'
+  return encodings[type] || type
+}
+
+function getValueEncoder (options, op) {
+  var type = (((op && (op.valueEncoding || op.encoding))
+      || options.valueEncoding || options.encoding)) || 'utf8'
+  return encodings[type] || type
+}
+
+/*
+  Encode a key.
+  This method takes two options, because the leveldb instance
+  has options, and this operation (a put, del, or batch)
+  also has options that may override the leveldb's options.
+*/
+
+function encodeKey (key, options, op) {
+  return getKeyEncoder(options, op).encode(key)
+}
+
+/*
+  Encode a value.
+  Takes 2 options, for the same reason as encodeKey
+*/
+
+function encodeValue (value, options, op) {
+  return getValueEncoder(options, op).encode(value)
+}
+
+/*
+  Decode an encoded key
+*/
+
+function decodeKey (key, options) {
+  return getKeyEncoder(options).decode(key)
+}
+
+/*
+  Decode an encoded value
+*/
+
+function decodeValue (value, options) {
+  return getValueEncoder(options).decode(value)
+}
+
+/*
+  check whether this value should be requested as a buffer
+  (if false, then it will be a string)
+  this allows an optimization in leveldown where leveldown
+  retrives a string directly, and thus avoids a memory copy.
+*/
+
+function isValueAsBuffer (options, op) {
+  return getValueEncoder(options, op).buffer
+}
+
+/*
+  check whether a given key should be requested as a buffer.
+*/
+
+function isKeyAsBuffer (options, op) {
+  return getKeyEncoder(options, op).buffer
+}
+
+
+module.exports = {
+    encodeKey       : encodeKey
+  , encodeValue     : encodeValue
+  , isValueAsBuffer : isValueAsBuffer
+  , isKeyAsBuffer   : isKeyAsBuffer
+  , decodeValue     : decodeValue
+  , decodeKey       : decodeKey
+}
+
+},{"./encodings":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/encodings.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/encodings.js":[function(require,module,exports){
+(function (Buffer){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var encodingNames = [
+        'hex'
+      , 'utf8'
+      , 'utf-8'
+      , 'ascii'
+      , 'binary'
+      , 'base64'
+      , 'ucs2'
+      , 'ucs-2'
+      , 'utf16le'
+      , 'utf-16le'
+    ]
+
+module.exports = (function () {
+  function isBinary (data) {
+    return data === undefined || data === null || Buffer.isBuffer(data)
+  }
+
+  var encodings = {}
+
+  encodings.utf8 = encodings['utf-8'] = {
+      encode : function (data) {
+        return isBinary(data) ? data : String(data)
+      }
+    , decode : function (data) { return data }
+    , buffer : false
+    , type   : 'utf8'
+  }
+
+  encodings.json = {
+      encode : JSON.stringify
+    , decode : JSON.parse
+    , buffer : false
+    , type   : 'json'
+  }
+
+  encodings.binary = {
+      encode : function (data) {
+        return isBinary(data) ? data : new Buffer(data)
+      }
+    , decode : function (data) {
+        return data
+      }
+    , buffer : true
+    , type   : 'binary'
+  }
+
+  encodingNames.forEach(function (type) {
+    if (encodings[type])
+      return
+
+    encodings[type] = {
+        encode : function (data) {
+          return isBinary(data) ? data : new Buffer(data, type)
+        }
+      , decode : function (buffer) {
+          return buffer.toString(type)
+        }
+      , buffer : true
+      , type   : type // useful for debugging purposes
+    }
+  })
+
+  return encodings
+})()
+
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/errors.js":[function(require,module,exports){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var createError   = require('errno').create
+  , LevelUPError  = createError('LevelUPError')
+  , NotFoundError = createError('NotFoundError', LevelUPError)
+
+NotFoundError.prototype.notFound = true
+NotFoundError.prototype.status   = 404
+
+module.exports = {
+    LevelUPError        : LevelUPError
+  , InitializationError : createError('InitializationError', LevelUPError)
+  , OpenError           : createError('OpenError', LevelUPError)
+  , ReadError           : createError('ReadError', LevelUPError)
+  , WriteError          : createError('WriteError', LevelUPError)
+  , NotFoundError       : NotFoundError
+  , EncodingError       : createError('EncodingError', LevelUPError)
+}
+
+},{"errno":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/errno/errno.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/levelup.js":[function(require,module,exports){
+(function (process){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var EventEmitter   = require('events').EventEmitter
+  , inherits       = require('util').inherits
+  , extend         = require('xtend')
+  , prr            = require('prr')
+  , DeferredLevelDOWN = require('deferred-leveldown')
+
+  , WriteError     = require('./errors').WriteError
+  , ReadError      = require('./errors').ReadError
+  , NotFoundError  = require('./errors').NotFoundError
+  , OpenError      = require('./errors').OpenError
+  , EncodingError  = require('./errors').EncodingError
+  , InitializationError = require('./errors').InitializationError
+
+  , ReadStream     = require('./read-stream')
+  , WriteStream    = require('./write-stream')
+  , util           = require('./util')
+  , Batch          = require('./batch')
+  , codec          = require('./codec')
+
+  , getOptions     = util.getOptions
+  , defaultOptions = util.defaultOptions
+  , getLevelDOWN   = util.getLevelDOWN
+  , dispatchError  = util.dispatchError
+  , isDefined      = util.isDefined
+
+function getCallback (options, callback) {
+  return typeof options == 'function' ? options : callback
+}
+
+// Possible LevelUP#_status values:
+//  - 'new'     - newly created, not opened or closed
+//  - 'opening' - waiting for the database to be opened, post open()
+//  - 'open'    - successfully opened the database, available for use
+//  - 'closing' - waiting for the database to be closed, post close()
+//  - 'closed'  - database has been successfully closed, should not be
+//                 used except for another open() operation
+
+function LevelUP (location, options, callback) {
+  if (!(this instanceof LevelUP))
+    return new LevelUP(location, options, callback)
+
+  var error
+
+  EventEmitter.call(this)
+  this.setMaxListeners(Infinity)
+
+  if (typeof location == 'function') {
+    options = typeof options == 'object' ? options : {}
+    options.db = location
+    location = null
+  } else if (typeof location == 'object' && typeof location.db == 'function') {
+    options = location
+    location = null
+  }
+
+
+  if (typeof options == 'function') {
+    callback = options
+    options  = {}
+  }
+
+  if ((!options || typeof options.db != 'function') && typeof location != 'string') {
+    error = new InitializationError(
+        'Must provide a location for the database')
+    if (callback) {
+      return process.nextTick(function () {
+        callback(error)
+      })
+    }
+    throw error
+  }
+
+  options      = getOptions(this, options)
+  this.options = extend(defaultOptions, options)
+  this._codec = options.codec || codec
+  this._status = 'new'
+  // set this.location as enumerable but not configurable or writable
+  prr(this, 'location', location, 'e')
+
+  this.open(callback)
+}
+
+inherits(LevelUP, EventEmitter)
+
+LevelUP.prototype.open = function (callback) {
+  var self = this
+    , dbFactory
+    , db
+
+  if (this.isOpen()) {
+    if (callback)
+      process.nextTick(function () { callback(null, self) })
+    return this
+  }
+
+  if (this._isOpening()) {
+    return callback && this.once(
+        'open'
+      , function () { callback(null, self) }
+    )
+  }
+
+  this.emit('opening')
+
+  this._status = 'opening'
+  this.db      = new DeferredLevelDOWN(this.location)
+  dbFactory    = this.options.db || getLevelDOWN()
+  db           = dbFactory(this.location)
+
+  db.open(this.options, function (err) {
+    if (err) {
+      return dispatchError(self, new OpenError(err), callback)
+    } else {
+      self.db.setDb(db)
+      self.db = db
+      self._status = 'open'
+      if (callback)
+        callback(null, self)
+      self.emit('open')
+      self.emit('ready')
+    }
+  })
+}
+
+LevelUP.prototype.close = function (callback) {
+  var self = this
+
+  if (this.isOpen()) {
+    this._status = 'closing'
+    this.db.close(function () {
+      self._status = 'closed'
+      self.emit('closed')
+      if (callback)
+        callback.apply(null, arguments)
+    })
+    this.emit('closing')
+    this.db = null
+  } else if (this._status == 'closed' && callback) {
+    return process.nextTick(callback)
+  } else if (this._status == 'closing' && callback) {
+    this.once('closed', callback)
+  } else if (this._isOpening()) {
+    this.once('open', function () {
+      self.close(callback)
+    })
+  }
+}
+
+LevelUP.prototype.isOpen = function () {
+  return this._status == 'open'
+}
+
+LevelUP.prototype._isOpening = function () {
+  return this._status == 'opening'
+}
+
+LevelUP.prototype.isClosed = function () {
+  return (/^clos/).test(this._status)
+}
+
+function maybeError(db, options, callback) {
+  if (!db._isOpening() && !db.isOpen()) {
+    dispatchError(
+        db
+      , new ReadError('Database is not open')
+      , callback
+    )
+    return true
+  }
+}
+
+function writeError (db, message, callback) {
+  dispatchError(
+      db
+     , new WriteError(message)
+     , callback
+  )
+}
+
+function readError (db, message, callback) {
+  dispatchError(
+      db
+     , new ReadError(message)
+     , callback
+  )
+  return true
+}
+
+
+LevelUP.prototype.get = function (key_, options, callback) {
+  var self = this
+    , key
+
+  callback = getCallback(options, callback)
+
+  if (maybeError(this, options, callback))
+    return
+
+  if (key_ === null || key_ === undefined || 'function' !== typeof callback)
+    return readError(this
+      , 'get() requires key and callback arguments', callback)
+
+  options = util.getOptions(this, options)
+  key = this._codec.encodeKey(key_, options)
+
+  options.asBuffer = this._codec.isValueAsBuffer(options)
+
+  this.db.get(key, options, function (err, value) {
+    if (err) {
+      if ((/notfound/i).test(err)) {
+        err = new NotFoundError(
+            'Key not found in database [' + key_ + ']', err)
+      } else {
+        err = new ReadError(err)
+      }
+      return dispatchError(self, err, callback)
+    }
+    if (callback) {
+      try {
+        value = self._codec.decodeValue(value, options)
+      } catch (e) {
+        return callback(new EncodingError(e))
+      }
+      callback(null, value)
+    }
+  })
+}
+
+LevelUP.prototype.put = function (key_, value_, options, callback) {
+  var self = this
+    , key
+    , value
+
+  callback = getCallback(options, callback)
+
+  if (key_ === null || key_ === undefined
+        || value_ === null || value_ === undefined)
+    return writeError(this, 'put() requires key and value arguments', callback)
+
+  if (maybeError(this, options, callback))
+    return
+
+  options = getOptions(this, options)
+  key     = this._codec.encodeKey(key_, options)
+  value   = this._codec.encodeValue(value_, options)
+
+  this.db.put(key, value, options, function (err) {
+    if (err) {
+      return dispatchError(self, new WriteError(err), callback)
+    } else {
+      self.emit('put', key_, value_)
+      if (callback)
+        callback()
+    }
+  })
+}
+
+LevelUP.prototype.del = function (key_, options, callback) {
+  var self = this
+    , key
+
+  callback = getCallback(options, callback)
+
+  if (key_ === null || key_ === undefined)
+    return writeError(this, 'del() requires a key argument', callback)
+
+  if (maybeError(this, options, callback))
+    return
+
+  options = getOptions(this, options)
+  key     = this._codec.encodeKey(key_, options)
+
+  this.db.del(key, options, function (err) {
+    if (err) {
+      return dispatchError(self, new WriteError(err), callback)
+    } else {
+      self.emit('del', key_)
+      if (callback)
+        callback()
+    }
+  })
+}
+
+LevelUP.prototype.batch = function (arr_, options, callback) {
+  var self = this
+    , keyEnc
+    , valueEnc
+    , arr
+
+  if (!arguments.length)
+    return new Batch(this, codec)
+
+  callback = getCallback(options, callback)
+
+  if (!Array.isArray(arr_))
+    return writeError(this, 'batch() requires an array argument', callback)
+
+  if (maybeError(this, options, callback))
+    return
+
+  options  = getOptions(this, options)
+  keyEnc   = options.keyEncoding
+  valueEnc = options.valueEncoding
+
+  arr = arr_.map(function (e) {
+    if (e.type === undefined || e.key === undefined)
+      return {}
+
+    // inherit encoding
+    var kEnc = e.keyEncoding || keyEnc
+      , vEnc = e.valueEncoding || e.encoding || valueEnc
+      , o
+
+    // If we're not dealing with plain utf8 strings or plain
+    // Buffers then we have to do some work on the array to
+    // encode the keys and/or values. This includes JSON types.
+
+    if (kEnc != 'utf8' && kEnc != 'binary'
+        || vEnc != 'utf8' && vEnc != 'binary') {
+      o = {
+          type: e.type
+        , key: self._codec.encodeKey(e.key, options, e)
+      }
+
+      if (e.value !== undefined)
+        o.value = self._codec.encodeValue(e.value, options, e)
+
+      return o
+    } else {
+      return e
+    }
+  })
+
+  this.db.batch(arr, options, function (err) {
+    if (err) {
+      return dispatchError(self, new WriteError(err), callback)
+    } else {
+      self.emit('batch', arr_)
+      if (callback)
+        callback()
+    }
+  })
+}
+
+// DEPRECATED: prefer accessing LevelDOWN for this: db.db.approximateSize()
+LevelUP.prototype.approximateSize = function (start_, end_, options, callback) {
+  var self = this
+    , start
+    , end
+
+  callback = getCallback(options, callback)
+
+  options = getOptions(options, callback)
+
+  if (start_ === null || start_ === undefined
+        || end_ === null || end_ === undefined || 'function' !== typeof callback)
+    return readError(this, 'approximateSize() requires start, end and callback arguments', callback)
+
+  start = this._codec.encodeKey(start_, this.options)
+  end   = this._codec.encodeKey(end_, this.options)
+
+  this.db.approximateSize(start, end, function (err, size) {
+    if (err) {
+      return dispatchError(self, new OpenError(err), callback)
+    } else if (callback) {
+      callback(null, size)
+    }
+  })
+}
+
+LevelUP.prototype.readStream =
+LevelUP.prototype.createReadStream = function (options) {
+  var self = this
+  options = extend( {keys: true, values: true}, this.options, options)
+
+  options.keyEncoding   = options.keyEncoding   || options.encoding
+  options.valueEncoding = options.valueEncoding || options.encoding
+
+  if (isDefined(options.start))
+    options.start = this._codec.encodeKey(options.start, options)
+  if (isDefined(options.end))
+    options.end = this._codec.encodeKey(options.end, options)
+  if (isDefined(options.gte))
+    options.gte = this._codec.encodeKey(options.gte, options)
+  if (isDefined(options.gt))
+    options.gt = this._codec.encodeKey(options.gt, options)
+  if (isDefined(options.lte))
+    options.lte = this._codec.encodeKey(options.lte, options)
+  if (isDefined(options.lt))
+    options.lt = this._codec.encodeKey(options.lt, options)
+  if ('number' !== typeof options.limit)
+    options.limit = -1
+
+  options.keyAsBuffer   = this._codec.isKeyAsBuffer(options)
+  options.valueAsBuffer = this._codec.isValueAsBuffer(options)
+
+  var makeData = options.keys && options.values
+    ? function (key, value) {
+        return {
+            key: self._codec.decodeKey(key, options)
+          , value: self._codec.decodeValue(value, options)
+        }
+      }
+    : options.keys
+    ? function (key) {
+        return self._codec.decodeKey(key, options)
+      }
+    : options.values
+    ? function (_, value) {
+        return self._codec.decodeValue(value, options)
+      }
+    : function () {}
+
+  var stream = new ReadStream(options, makeData)
+
+  if (this.isOpen()) {
+    stream.setIterator(self.db.iterator(options))
+  } else {
+    this.once('ready', function () {
+      stream.setIterator(self.db.iterator(options))
+    })
+  }
+
+  return stream
+}
+
+LevelUP.prototype.keyStream =
+LevelUP.prototype.createKeyStream = function (options) {
+  return this.createReadStream(extend(options, { keys: true, values: false }))
+}
+
+LevelUP.prototype.valueStream =
+LevelUP.prototype.createValueStream = function (options) {
+  return this.createReadStream(extend(options, { keys: false, values: true }))
+}
+
+LevelUP.prototype.writeStream =
+LevelUP.prototype.createWriteStream = function (options) {
+  //XXX is extend needed here?
+  return new WriteStream(extend(options), this)
+}
+
+LevelUP.prototype.toString = function () {
+  return 'LevelUP'
+}
+
+function utilStatic (name) {
+  return function (location, callback) {
+    getLevelDOWN()[name](location, callback || function () {})
+  }
+}
+
+module.exports         = LevelUP
+module.exports.copy    = util.copy
+// DEPRECATED: prefer accessing LevelDOWN for this: require('leveldown').destroy()
+module.exports.destroy = utilStatic('destroy')
+// DEPRECATED: prefer accessing LevelDOWN for this: require('leveldown').repair()
+module.exports.repair  = utilStatic('repair')
+
+
+}).call(this,require('_process'))
+},{"./batch":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/batch.js","./codec":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/codec.js","./errors":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/errors.js","./read-stream":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/read-stream.js","./util":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/util.js","./write-stream":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/write-stream.js","_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js","deferred-leveldown":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/deferred-leveldown.js","events":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","prr":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/prr/prr.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js","xtend":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/read-stream.js":[function(require,module,exports){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+// NOTE: we are fixed to readable-stream@1.0.x for now
+// for pure Streams2 across Node versions
+var Readable      = require('readable-stream').Readable
+  , inherits      = require('util').inherits
+  , extend        = require('xtend')
+  , EncodingError = require('./errors').EncodingError
+  , util          = require('./util')
+
+
+
+function ReadStream (options, makeData) {
+  if (!(this instanceof ReadStream))
+    return new ReadStream(options, makeData)
+
+  Readable.call(this, { objectMode: true, highWaterMark: options.highWaterMark })
+
+  // purely to keep `db` around until we're done so it's not GCed if the user doesn't keep a ref
+
+  this._waiting = false
+  this._options = options
+  this._makeData = makeData
+}
+
+inherits(ReadStream, Readable)
+
+ReadStream.prototype.setIterator = function (it) {
+  var self = this
+  this._iterator = it
+  if(this._destroyed) return it.end(function () {})
+  if(this._waiting) {
+    this._waiting = false
+    return this._read()
+  }
+  return this
+}
+
+ReadStream.prototype._read = function read () {
+  var self = this
+  if (self._destroyed)
+    return
+  if(!self._iterator)
+    return this._waiting = true
+
+  self._iterator.next(function(err, key, value) {
+    if (err || (key === undefined && value === undefined)) {
+      if (!err && !self._destroyed)
+        self.push(null)
+      return self._cleanup(err)
+    }
+
+
+    try {
+      value = self._makeData(key, value)
+    } catch (e) {
+      return self._cleanup(new EncodingError(e))
+    }
+    if (!self._destroyed)
+      self.push(value)
+  })
+}
+
+ReadStream.prototype._cleanup = function (err) {
+  if (this._destroyed)
+    return
+
+  this._destroyed = true
+
+  var self = this
+  if (err)
+    self.emit('error', err)
+
+  if (self._iterator) {
+    self._iterator.end(function () {
+      self._iterator = null
+      self.emit('close')
+    })
+  } else {
+    self.emit('close')
+  }
+}
+
+ReadStream.prototype.destroy = function () {
+  this._cleanup()
+}
+
+ReadStream.prototype.toString = function () {
+  return 'LevelUP.ReadStream'
+}
+
+
+module.exports = ReadStream
+
+
+},{"./errors":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/errors.js","./util":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/util.js","readable-stream":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/readable.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js","xtend":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/util.js":[function(require,module,exports){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var extend        = require('xtend')
+  , LevelUPError  = require('./errors').LevelUPError
+  , encodings     = require('./encodings')
+  , defaultOptions = {
+        createIfMissing : true
+      , errorIfExists   : false
+      , keyEncoding     : 'utf8'
+      , valueEncoding   : 'utf8'
+      , compression     : true
+    }
+
+  , leveldown
+  , encodingOpts = (function () {
+      var eo = {}
+      for(var e in encodings)
+        eo[e] = {valueEncoding: encodings[e]}
+      return eo
+    }())
+
+function copy (srcdb, dstdb, callback) {
+  srcdb.readStream()
+    .pipe(dstdb.writeStream())
+    .on('close', callback ? callback : function () {})
+    .on('error', callback ? callback : function (err) { throw err })
+}
+
+function getOptions (levelup, options) {
+  var s = typeof options == 'string' // just an encoding
+  if (!s && options && options.encoding && !options.valueEncoding)
+    options.valueEncoding = options.encoding
+  return extend(
+      (levelup && levelup.options) || {}
+    , s ? encodingOpts[options] || encodingOpts[defaultOptions.valueEncoding]
+        : options
+  )
+}
+
+function getLevelDOWN () {
+  if (leveldown)
+    return leveldown
+
+  var requiredVersion       = require('../package.json').devDependencies.leveldown
+    , missingLevelDOWNError = 'Could not locate LevelDOWN, try `npm install leveldown`'
+    , leveldownVersion
+
+  try {
+    leveldownVersion = require('leveldown/package').version
+  } catch (e) {
+    throw new LevelUPError(missingLevelDOWNError)
+  }
+
+  if (!require('semver').satisfies(leveldownVersion, requiredVersion)) {
+    throw new LevelUPError(
+        'Installed version of LevelDOWN ('
+      + leveldownVersion
+      + ') does not match required version ('
+      + requiredVersion
+      + ')'
+    )
+  }
+
+  try {
+    return leveldown = require('leveldown')
+  } catch (e) {
+    throw new LevelUPError(missingLevelDOWNError)
+  }
+}
+
+function dispatchError (levelup, error, callback) {
+  return typeof callback == 'function'
+    ? callback(error)
+    : levelup.emit('error', error)
+}
+
+function isDefined (v) {
+  return typeof v !== 'undefined'
+}
+
+module.exports = {
+    defaultOptions  : defaultOptions
+  , copy            : copy
+  , getOptions      : getOptions
+  , getLevelDOWN    : getLevelDOWN
+  , dispatchError   : dispatchError
+  , isDefined       : isDefined
+}
+
+},{"../package.json":"/home/eric/bulk/bit-voyage/node_modules/levelup/package.json","./encodings":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/encodings.js","./errors":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/errors.js","leveldown":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js","leveldown/package":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js","semver":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/browser-resolve/empty.js","xtend":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/write-stream.js":[function(require,module,exports){
+(function (process,global){
+/* Copyright (c) 2012-2014 LevelUP contributors
+ * See list at <https://github.com/rvagg/node-levelup#contributing>
+ * MIT License
+ * <https://github.com/rvagg/node-levelup/blob/master/LICENSE.md>
+ */
+
+var Stream       = require('stream').Stream
+  , inherits     = require('util').inherits
+  , extend       = require('xtend')
+  , bl           = require('bl')
+
+  , setImmediate = global.setImmediate || process.nextTick
+
+  , getOptions   = require('./util').getOptions
+
+  , defaultOptions = { type: 'put' }
+
+function WriteStream (options, db) {
+  if (!(this instanceof WriteStream))
+    return new WriteStream(options, db)
+
+  Stream.call(this)
+  this._options = extend(defaultOptions, getOptions(db, options))
+  this._db      = db
+  this._buffer  = []
+  this._status  = 'init'
+  this._end     = false
+  this.writable = true
+  this.readable = false
+
+  var self = this
+    , ready = function () {
+        if (!self.writable)
+          return
+        self._status = 'ready'
+        self.emit('ready')
+        self._process()
+      }
+
+  if (db.isOpen())
+    setImmediate(ready)
+  else
+    db.once('ready', ready)
+}
+
+inherits(WriteStream, Stream)
+
+WriteStream.prototype.write = function (data) {
+  if (!this.writable)
+    return false
+  this._buffer.push(data)
+  if (this._status != 'init')
+    this._processDelayed()
+  if (this._options.maxBufferLength &&
+      this._buffer.length > this._options.maxBufferLength) {
+    this._writeBlock = true
+    return false
+  }
+  return true
+}
+
+WriteStream.prototype.end = function (data) {
+  var self = this
+  if (data)
+    this.write(data)
+  setImmediate(function () {
+    self._end = true
+    self._process()
+  })
+}
+
+WriteStream.prototype.destroy = function () {
+  this.writable = false
+  this.end()
+}
+
+WriteStream.prototype.destroySoon = function () {
+  this.end()
+}
+
+WriteStream.prototype.add = function (entry) {
+  if (!entry.props)
+    return
+  if (entry.props.Directory)
+    entry.pipe(this._db.writeStream(this._options))
+  else if (entry.props.File || entry.File || entry.type == 'File')
+    this._write(entry)
+  return true
+}
+
+WriteStream.prototype._processDelayed = function () {
+  var self = this
+  setImmediate(function () {
+    self._process()
+  })
+}
+
+WriteStream.prototype._process = function () {
+  var buffer
+    , self = this
+
+    , cb = function (err) {
+        if (!self.writable)
+          return
+        if (self._status != 'closed')
+          self._status = 'ready'
+        if (err) {
+          self.writable = false
+          return self.emit('error', err)
+        }
+        self._process()
+      }
+
+  if (self._status != 'ready' && self.writable) {
+    if (self._buffer.length && self._status != 'closed')
+      self._processDelayed()
+    return
+  }
+
+  if (self._buffer.length && self.writable) {
+    self._status = 'writing'
+    buffer       = self._buffer
+    self._buffer = []
+
+    self._db.batch(buffer.map(function (d) {
+      return {
+          type          : d.type || self._options.type
+        , key           : d.key
+        , value         : d.value
+        , keyEncoding   : d.keyEncoding || self._options.keyEncoding
+        , valueEncoding : d.valueEncoding
+            || d.encoding
+            || self._options.valueEncoding
+      }
+    }), cb)
+
+    if (self._writeBlock) {
+      self._writeBlock = false
+      self.emit('drain')
+    }
+
+    // don't allow close until callback has returned
+    return
+  }
+
+  if (self._end && self._status != 'closed') {
+    self._status  = 'closed'
+    self.writable = false
+    self.emit('close')
+  }
+}
+
+WriteStream.prototype._write = function (entry) {
+  var key = entry.path || entry.props.path
+    , self = this
+
+  if (!key)
+    return
+
+  entry.pipe(bl(function (err, data) {
+    if (err) {
+      self.writable = false
+      return self.emit('error', err)
+    }
+
+    if (self._options.fstreamRoot &&
+        key.indexOf(self._options.fstreamRoot) > -1)
+      key = key.substr(self._options.fstreamRoot.length + 1)
+
+    self.write({ key: key, value: data.slice(0) })
+  }))
+}
+
+WriteStream.prototype.toString = function () {
+  return 'LevelUP.WriteStream'
+}
+
+module.exports = WriteStream
+
+}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./util":"/home/eric/bulk/bit-voyage/node_modules/levelup/lib/util.js","_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js","bl":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/bl/bl.js","stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js","xtend":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/bl/bl.js":[function(require,module,exports){
+(function (Buffer){
+var DuplexStream = require('readable-stream').Duplex
+  , util         = require('util')
+
+function BufferList (callback) {
+  if (!(this instanceof BufferList))
+    return new BufferList(callback)
+
+  this._bufs  = []
+  this.length = 0
+
+  if (typeof callback == 'function') {
+    this._callback = callback
+
+    var piper = function (err) {
+      if (this._callback) {
+        this._callback(err)
+        this._callback = null
+      }
+    }.bind(this)
+
+    this.on('pipe', function (src) {
+      src.on('error', piper)
+    })
+    this.on('unpipe', function (src) {
+      src.removeListener('error', piper)
+    })
+  }
+  else if (Buffer.isBuffer(callback))
+    this.append(callback)
+  else if (Array.isArray(callback)) {
+    callback.forEach(function (b) {
+      Buffer.isBuffer(b) && this.append(b)
+    }.bind(this))
+  }
+
+  DuplexStream.call(this)
+}
+
+util.inherits(BufferList, DuplexStream)
+
+BufferList.prototype._offset = function (offset) {
+  var tot = 0, i = 0, _t
+  for (; i < this._bufs.length; i++) {
+    _t = tot + this._bufs[i].length
+    if (offset < _t)
+      return [ i, offset - tot ]
+    tot = _t
+  }
+}
+
+BufferList.prototype.append = function (buf) {
+  this._bufs.push(Buffer.isBuffer(buf) ? buf : new Buffer(buf))
+  this.length += buf.length
+  return this
+}
+
+BufferList.prototype._write = function (buf, encoding, callback) {
+  this.append(buf)
+  if (callback)
+    callback()
+}
+
+BufferList.prototype._read = function (size) {
+  if (!this.length)
+    return this.push(null)
+  size = Math.min(size, this.length)
+  this.push(this.slice(0, size))
+  this.consume(size)
+}
+
+BufferList.prototype.end = function (chunk) {
+  DuplexStream.prototype.end.call(this, chunk)
+
+  if (this._callback) {
+    this._callback(null, this.slice())
+    this._callback = null
+  }
+}
+
+BufferList.prototype.get = function (index) {
+  return this.slice(index, index + 1)[0]
+}
+
+BufferList.prototype.slice = function (start, end) {
+  return this.copy(null, 0, start, end)
+}
+
+BufferList.prototype.copy = function (dst, dstStart, srcStart, srcEnd) {
+  if (typeof srcStart != 'number' || srcStart < 0)
+    srcStart = 0
+  if (typeof srcEnd != 'number' || srcEnd > this.length)
+    srcEnd = this.length
+  if (srcStart >= this.length)
+    return dst || new Buffer(0)
+  if (srcEnd <= 0)
+    return dst || new Buffer(0)
+
+  var copy   = !!dst
+    , off    = this._offset(srcStart)
+    , len    = srcEnd - srcStart
+    , bytes  = len
+    , bufoff = (copy && dstStart) || 0
+    , start  = off[1]
+    , l
+    , i
+
+  // copy/slice everything
+  if (srcStart === 0 && srcEnd == this.length) {
+    if (!copy) // slice, just return a full concat
+      return Buffer.concat(this._bufs)
+
+    // copy, need to copy individual buffers
+    for (i = 0; i < this._bufs.length; i++) {
+      this._bufs[i].copy(dst, bufoff)
+      bufoff += this._bufs[i].length
+    }
+
+    return dst
+  }
+
+  // easy, cheap case where it's a subset of one of the buffers
+  if (bytes <= this._bufs[off[0]].length - start) {
+    return copy
+      ? this._bufs[off[0]].copy(dst, dstStart, start, start + bytes)
+      : this._bufs[off[0]].slice(start, start + bytes)
+  }
+
+  if (!copy) // a slice, we need something to copy in to
+    dst = new Buffer(len)
+
+  for (i = off[0]; i < this._bufs.length; i++) {
+    l = this._bufs[i].length - start
+
+    if (bytes > l) {
+      this._bufs[i].copy(dst, bufoff, start)
+    } else {
+      this._bufs[i].copy(dst, bufoff, start, start + bytes)
+      break
+    }
+
+    bufoff += l
+    bytes -= l
+
+    if (start)
+      start = 0
+  }
+
+  return dst
+}
+
+BufferList.prototype.toString = function (encoding, start, end) {
+  return this.slice(start, end).toString(encoding)
+}
+
+BufferList.prototype.consume = function (bytes) {
+  while (this._bufs.length) {
+    if (bytes > this._bufs[0].length) {
+      bytes -= this._bufs[0].length
+      this.length -= this._bufs[0].length
+      this._bufs.shift()
+    } else {
+      this._bufs[0] = this._bufs[0].slice(bytes)
+      this.length -= bytes
+      break
+    }
+  }
+  return this
+}
+
+BufferList.prototype.duplicate = function () {
+  var i = 0
+    , copy = new BufferList()
+
+  for (; i < this._bufs.length; i++)
+    copy.append(this._bufs[i])
+
+  return copy
+}
+
+BufferList.prototype.destroy = function () {
+  this._bufs.length = 0;
+  this.length = 0;
+  this.push(null);
+}
+
+;(function () {
+  var methods = {
+      'readDoubleBE' : 8
+    , 'readDoubleLE' : 8
+    , 'readFloatBE'  : 4
+    , 'readFloatLE'  : 4
+    , 'readInt32BE'  : 4
+    , 'readInt32LE'  : 4
+    , 'readUInt32BE' : 4
+    , 'readUInt32LE' : 4
+    , 'readInt16BE'  : 2
+    , 'readInt16LE'  : 2
+    , 'readUInt16BE' : 2
+    , 'readUInt16LE' : 2
+    , 'readInt8'     : 1
+    , 'readUInt8'    : 1
+  }
+
+  for (var m in methods) {
+    (function (m) {
+      BufferList.prototype[m] = function (offset) {
+        return this.slice(offset, offset + methods[m])[m](0)
+      }
+    }(m))
+  }
+}())
+
+module.exports = BufferList
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","readable-stream":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/readable.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/deferred-leveldown.js":[function(require,module,exports){
+(function (process,Buffer){
+var util              = require('util')
+  , AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
+
+function DeferredLevelDOWN (location) {
+  AbstractLevelDOWN.call(this, typeof location == 'string' ? location : '') // optional location, who cares?
+  this._db         = undefined
+  this._operations = []
+}
+
+util.inherits(DeferredLevelDOWN, AbstractLevelDOWN)
+
+// called by LevelUP when we have a real DB to take its place
+DeferredLevelDOWN.prototype.setDb = function (db) {
+  this._db = db
+  this._operations.forEach(function (op) {
+    db[op.method].apply(db, op.args)
+  })
+}
+
+DeferredLevelDOWN.prototype._open = function (options, callback) {
+  return process.nextTick(callback)
+}
+
+// queue a new deferred operation
+DeferredLevelDOWN.prototype._operation = function (method, args) {
+  if (this._db)
+    return this._db[method].apply(this._db, args)
+  this._operations.push({ method: method, args: args })
+}
+
+// deferrables
+'put get del batch approximateSize'.split(' ').forEach(function (m) {
+  DeferredLevelDOWN.prototype['_' + m] = function () {
+    this._operation(m, arguments)
+  }
+})
+
+DeferredLevelDOWN.prototype._isBuffer = function (obj) {
+  return Buffer.isBuffer(obj)
+}
+
+// don't need to implement this as LevelUP's ReadStream checks for 'ready' state
+DeferredLevelDOWN.prototype._iterator = function () {
+  throw new TypeError('not implemented')
+}
+
+module.exports = DeferredLevelDOWN
+
+}).call(this,require('_process'),require("buffer").Buffer)
+},{"_process":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js","abstract-leveldown":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-leveldown.js","buffer":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js","util":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/util/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-chained-batch.js":[function(require,module,exports){
+module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js")
+},{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-chained-batch.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-iterator.js":[function(require,module,exports){
+module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js")
+},{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-iterator.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/deferred-leveldown/node_modules/abstract-leveldown/abstract-leveldown.js":[function(require,module,exports){
+module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js")
+},{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/abstract-leveldown.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/errno/custom.js":[function(require,module,exports){
+var prr = require('prr')
+
+function init (type, message, cause) {
+  prr(this, {
+      type    : type
+    , name    : type
+      // can be passed just a 'cause'
+    , cause   : typeof message != 'string' ? message : cause
+    , message : !!message && typeof message != 'string' ? message.message : message
+
+  }, 'ewr')
+}
+
+// generic prototype, not intended to be actually used - helpful for `instanceof`
+function CustomError (message, cause) {
+  Error.call(this)
+  if (Error.captureStackTrace)
+    Error.captureStackTrace(this, arguments.callee)
+  init.call(this, 'CustomError', message, cause)
+}
+
+CustomError.prototype = new Error()
+
+function createError (errno, type, proto) {
+  var err = function (message, cause) {
+    init.call(this, type, message, cause)
+    //TODO: the specificity here is stupid, errno should be available everywhere
+    if (type == 'FilesystemError') {
+      this.code    = this.cause.code
+      this.path    = this.cause.path
+      this.errno   = this.cause.errno
+      this.message =
+        (errno.errno[this.cause.errno]
+          ? errno.errno[this.cause.errno].description
+          : this.cause.message)
+        + (this.cause.path ? ' [' + this.cause.path + ']' : '')
+    }
+    Error.call(this)
+    if (Error.captureStackTrace)
+      Error.captureStackTrace(this, arguments.callee)
+  }
+  err.prototype = !!proto ? new proto() : new CustomError()
+  return err
+}
+
+module.exports = function (errno) {
+  var ce = function (type, proto) {
+    return createError(errno, type, proto)
+  }
+  return {
+      CustomError     : CustomError
+    , FilesystemError : ce('FilesystemError')
+    , createError     : ce
+  }
+}
+
+},{"prr":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/prr/prr.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/errno/errno.js":[function(require,module,exports){
+var all = module.exports.all = [
+ {
+  "errno": -1,
+  "code": "UNKNOWN",
+  "description": "unknown error"
+ },
+ {
+  "errno": 0,
+  "code": "OK",
+  "description": "success"
+ },
+ {
+  "errno": 1,
+  "code": "EOF",
+  "description": "end of file"
+ },
+ {
+  "errno": 2,
+  "code": "EADDRINFO",
+  "description": "getaddrinfo error"
+ },
+ {
+  "errno": 3,
+  "code": "EACCES",
+  "description": "permission denied"
+ },
+ {
+  "errno": 4,
+  "code": "EAGAIN",
+  "description": "resource temporarily unavailable"
+ },
+ {
+  "errno": 5,
+  "code": "EADDRINUSE",
+  "description": "address already in use"
+ },
+ {
+  "errno": 6,
+  "code": "EADDRNOTAVAIL",
+  "description": "address not available"
+ },
+ {
+  "errno": 7,
+  "code": "EAFNOSUPPORT",
+  "description": "address family not supported"
+ },
+ {
+  "errno": 8,
+  "code": "EALREADY",
+  "description": "connection already in progress"
+ },
+ {
+  "errno": 9,
+  "code": "EBADF",
+  "description": "bad file descriptor"
+ },
+ {
+  "errno": 10,
+  "code": "EBUSY",
+  "description": "resource busy or locked"
+ },
+ {
+  "errno": 11,
+  "code": "ECONNABORTED",
+  "description": "software caused connection abort"
+ },
+ {
+  "errno": 12,
+  "code": "ECONNREFUSED",
+  "description": "connection refused"
+ },
+ {
+  "errno": 13,
+  "code": "ECONNRESET",
+  "description": "connection reset by peer"
+ },
+ {
+  "errno": 14,
+  "code": "EDESTADDRREQ",
+  "description": "destination address required"
+ },
+ {
+  "errno": 15,
+  "code": "EFAULT",
+  "description": "bad address in system call argument"
+ },
+ {
+  "errno": 16,
+  "code": "EHOSTUNREACH",
+  "description": "host is unreachable"
+ },
+ {
+  "errno": 17,
+  "code": "EINTR",
+  "description": "interrupted system call"
+ },
+ {
+  "errno": 18,
+  "code": "EINVAL",
+  "description": "invalid argument"
+ },
+ {
+  "errno": 19,
+  "code": "EISCONN",
+  "description": "socket is already connected"
+ },
+ {
+  "errno": 20,
+  "code": "EMFILE",
+  "description": "too many open files"
+ },
+ {
+  "errno": 21,
+  "code": "EMSGSIZE",
+  "description": "message too long"
+ },
+ {
+  "errno": 22,
+  "code": "ENETDOWN",
+  "description": "network is down"
+ },
+ {
+  "errno": 23,
+  "code": "ENETUNREACH",
+  "description": "network is unreachable"
+ },
+ {
+  "errno": 24,
+  "code": "ENFILE",
+  "description": "file table overflow"
+ },
+ {
+  "errno": 25,
+  "code": "ENOBUFS",
+  "description": "no buffer space available"
+ },
+ {
+  "errno": 26,
+  "code": "ENOMEM",
+  "description": "not enough memory"
+ },
+ {
+  "errno": 27,
+  "code": "ENOTDIR",
+  "description": "not a directory"
+ },
+ {
+  "errno": 28,
+  "code": "EISDIR",
+  "description": "illegal operation on a directory"
+ },
+ {
+  "errno": 29,
+  "code": "ENONET",
+  "description": "machine is not on the network"
+ },
+ {
+  "errno": 31,
+  "code": "ENOTCONN",
+  "description": "socket is not connected"
+ },
+ {
+  "errno": 32,
+  "code": "ENOTSOCK",
+  "description": "socket operation on non-socket"
+ },
+ {
+  "errno": 33,
+  "code": "ENOTSUP",
+  "description": "operation not supported on socket"
+ },
+ {
+  "errno": 34,
+  "code": "ENOENT",
+  "description": "no such file or directory"
+ },
+ {
+  "errno": 35,
+  "code": "ENOSYS",
+  "description": "function not implemented"
+ },
+ {
+  "errno": 36,
+  "code": "EPIPE",
+  "description": "broken pipe"
+ },
+ {
+  "errno": 37,
+  "code": "EPROTO",
+  "description": "protocol error"
+ },
+ {
+  "errno": 38,
+  "code": "EPROTONOSUPPORT",
+  "description": "protocol not supported"
+ },
+ {
+  "errno": 39,
+  "code": "EPROTOTYPE",
+  "description": "protocol wrong type for socket"
+ },
+ {
+  "errno": 40,
+  "code": "ETIMEDOUT",
+  "description": "connection timed out"
+ },
+ {
+  "errno": 41,
+  "code": "ECHARSET",
+  "description": "invalid Unicode character"
+ },
+ {
+  "errno": 42,
+  "code": "EAIFAMNOSUPPORT",
+  "description": "address family for hostname not supported"
+ },
+ {
+  "errno": 44,
+  "code": "EAISERVICE",
+  "description": "servname not supported for ai_socktype"
+ },
+ {
+  "errno": 45,
+  "code": "EAISOCKTYPE",
+  "description": "ai_socktype not supported"
+ },
+ {
+  "errno": 46,
+  "code": "ESHUTDOWN",
+  "description": "cannot send after transport endpoint shutdown"
+ },
+ {
+  "errno": 47,
+  "code": "EEXIST",
+  "description": "file already exists"
+ },
+ {
+  "errno": 48,
+  "code": "ESRCH",
+  "description": "no such process"
+ },
+ {
+  "errno": 49,
+  "code": "ENAMETOOLONG",
+  "description": "name too long"
+ },
+ {
+  "errno": 50,
+  "code": "EPERM",
+  "description": "operation not permitted"
+ },
+ {
+  "errno": 51,
+  "code": "ELOOP",
+  "description": "too many symbolic links encountered"
+ },
+ {
+  "errno": 52,
+  "code": "EXDEV",
+  "description": "cross-device link not permitted"
+ },
+ {
+  "errno": 53,
+  "code": "ENOTEMPTY",
+  "description": "directory not empty"
+ },
+ {
+  "errno": 54,
+  "code": "ENOSPC",
+  "description": "no space left on device"
+ },
+ {
+  "errno": 55,
+  "code": "EIO",
+  "description": "i/o error"
+ },
+ {
+  "errno": 56,
+  "code": "EROFS",
+  "description": "read-only file system"
+ },
+ {
+  "errno": 57,
+  "code": "ENODEV",
+  "description": "no such device"
+ },
+ {
+  "errno": 58,
+  "code": "ESPIPE",
+  "description": "invalid seek"
+ },
+ {
+  "errno": 59,
+  "code": "ECANCELED",
+  "description": "operation canceled"
+ }
+]
+
+
+module.exports.errno = {
+    '-1': all[0]
+  , '0': all[1]
+  , '1': all[2]
+  , '2': all[3]
+  , '3': all[4]
+  , '4': all[5]
+  , '5': all[6]
+  , '6': all[7]
+  , '7': all[8]
+  , '8': all[9]
+  , '9': all[10]
+  , '10': all[11]
+  , '11': all[12]
+  , '12': all[13]
+  , '13': all[14]
+  , '14': all[15]
+  , '15': all[16]
+  , '16': all[17]
+  , '17': all[18]
+  , '18': all[19]
+  , '19': all[20]
+  , '20': all[21]
+  , '21': all[22]
+  , '22': all[23]
+  , '23': all[24]
+  , '24': all[25]
+  , '25': all[26]
+  , '26': all[27]
+  , '27': all[28]
+  , '28': all[29]
+  , '29': all[30]
+  , '31': all[31]
+  , '32': all[32]
+  , '33': all[33]
+  , '34': all[34]
+  , '35': all[35]
+  , '36': all[36]
+  , '37': all[37]
+  , '38': all[38]
+  , '39': all[39]
+  , '40': all[40]
+  , '41': all[41]
+  , '42': all[42]
+  , '44': all[43]
+  , '45': all[44]
+  , '46': all[45]
+  , '47': all[46]
+  , '48': all[47]
+  , '49': all[48]
+  , '50': all[49]
+  , '51': all[50]
+  , '52': all[51]
+  , '53': all[52]
+  , '54': all[53]
+  , '55': all[54]
+  , '56': all[55]
+  , '57': all[56]
+  , '58': all[57]
+  , '59': all[58]
+}
+
+
+module.exports.code = {
+    'UNKNOWN': all[0]
+  , 'OK': all[1]
+  , 'EOF': all[2]
+  , 'EADDRINFO': all[3]
+  , 'EACCES': all[4]
+  , 'EAGAIN': all[5]
+  , 'EADDRINUSE': all[6]
+  , 'EADDRNOTAVAIL': all[7]
+  , 'EAFNOSUPPORT': all[8]
+  , 'EALREADY': all[9]
+  , 'EBADF': all[10]
+  , 'EBUSY': all[11]
+  , 'ECONNABORTED': all[12]
+  , 'ECONNREFUSED': all[13]
+  , 'ECONNRESET': all[14]
+  , 'EDESTADDRREQ': all[15]
+  , 'EFAULT': all[16]
+  , 'EHOSTUNREACH': all[17]
+  , 'EINTR': all[18]
+  , 'EINVAL': all[19]
+  , 'EISCONN': all[20]
+  , 'EMFILE': all[21]
+  , 'EMSGSIZE': all[22]
+  , 'ENETDOWN': all[23]
+  , 'ENETUNREACH': all[24]
+  , 'ENFILE': all[25]
+  , 'ENOBUFS': all[26]
+  , 'ENOMEM': all[27]
+  , 'ENOTDIR': all[28]
+  , 'EISDIR': all[29]
+  , 'ENONET': all[30]
+  , 'ENOTCONN': all[31]
+  , 'ENOTSOCK': all[32]
+  , 'ENOTSUP': all[33]
+  , 'ENOENT': all[34]
+  , 'ENOSYS': all[35]
+  , 'EPIPE': all[36]
+  , 'EPROTO': all[37]
+  , 'EPROTONOSUPPORT': all[38]
+  , 'EPROTOTYPE': all[39]
+  , 'ETIMEDOUT': all[40]
+  , 'ECHARSET': all[41]
+  , 'EAIFAMNOSUPPORT': all[42]
+  , 'EAISERVICE': all[43]
+  , 'EAISOCKTYPE': all[44]
+  , 'ESHUTDOWN': all[45]
+  , 'EEXIST': all[46]
+  , 'ESRCH': all[47]
+  , 'ENAMETOOLONG': all[48]
+  , 'EPERM': all[49]
+  , 'ELOOP': all[50]
+  , 'EXDEV': all[51]
+  , 'ENOTEMPTY': all[52]
+  , 'ENOSPC': all[53]
+  , 'EIO': all[54]
+  , 'EROFS': all[55]
+  , 'ENODEV': all[56]
+  , 'ESPIPE': all[57]
+  , 'ECANCELED': all[58]
+}
+
+
+module.exports.custom = require("./custom")(module.exports)
+module.exports.create = module.exports.custom.createError
+},{"./custom":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/errno/custom.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/prr/prr.js":[function(require,module,exports){
+/*!
+  * prr
+  * (c) 2013 Rod Vagg <rod@vagg.org>
+  * https://github.com/rvagg/prr
+  * License: MIT
+  */
+
+(function (name, context, definition) {
+  if (typeof module != 'undefined' && module.exports)
+    module.exports = definition()
+  else
+    context[name] = definition()
+})('prr', this, function() {
+
+  var setProperty = typeof Object.defineProperty == 'function'
+      ? function (obj, key, options) {
+          Object.defineProperty(obj, key, options)
+          return obj
+        }
+      : function (obj, key, options) { // < es5
+          obj[key] = options.value
+          return obj
+        }
+
+    , makeOptions = function (value, options) {
+        var oo = typeof options == 'object'
+          , os = !oo && typeof options == 'string'
+          , op = function (p) {
+              return oo
+                ? !!options[p]
+                : os
+                  ? options.indexOf(p[0]) > -1
+                  : false
+            }
+
+        return {
+            enumerable   : op('enumerable')
+          , configurable : op('configurable')
+          , writable     : op('writable')
+          , value        : value
+        }
+      }
+
+    , prr = function (obj, key, value, options) {
+        var k
+
+        options = makeOptions(value, options)
+
+        if (typeof key == 'object') {
+          for (k in key) {
+            if (Object.hasOwnProperty.call(key, k)) {
+              options.value = key[k]
+              setProperty(obj, k, options)
+            }
+          }
+          return obj
+        }
+
+        return setProperty(obj, key, options)
+      }
+
+  return prr
+})
+},{}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_duplex.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_duplex.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_duplex.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_duplex.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_passthrough.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_passthrough.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_passthrough.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_passthrough.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_readable.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_readable.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_readable.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_readable.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_transform.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_transform.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_transform.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_transform.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_writable.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/lib/_stream_writable.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/core-util-is/lib/util.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/node_modules/core-util-is/lib/util.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/node_modules/core-util-is/lib/util.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/readable-stream/node_modules/core-util-is/lib/util.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/inherits/inherits_browser.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/inherits/inherits_browser.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/inherits/inherits_browser.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/inherits/inherits_browser.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/isarray/index.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/isarray/index.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/isarray/index.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/isarray/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/node_modules/string_decoder/index.js":[function(require,module,exports){
+module.exports=require("/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/string_decoder/index.js")
+},{"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/string_decoder/index.js":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/string_decoder/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/readable.js":[function(require,module,exports){
+var Stream = require('stream'); // hack to fix a circular dependency issue when used with browserify
+exports = module.exports = require('./lib/_stream_readable.js');
+exports.Stream = Stream;
+exports.Readable = exports;
+exports.Writable = require('./lib/_stream_writable.js');
+exports.Duplex = require('./lib/_stream_duplex.js');
+exports.Transform = require('./lib/_stream_transform.js');
+exports.PassThrough = require('./lib/_stream_passthrough.js');
+
+},{"./lib/_stream_duplex.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_duplex.js","./lib/_stream_passthrough.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_passthrough.js","./lib/_stream_readable.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_readable.js","./lib/_stream_transform.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_transform.js","./lib/_stream_writable.js":"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/readable-stream/lib/_stream_writable.js","stream":"/home/eric/.nvm/v0.10.32/lib/node_modules/watchify/node_modules/browserify/node_modules/stream-browserify/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/node_modules/xtend/index.js":[function(require,module,exports){
+module.exports=require("/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js")
+},{"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js":"/home/eric/bulk/bit-voyage/node_modules/level-js/node_modules/abstract-leveldown/node_modules/xtend/index.js"}],"/home/eric/bulk/bit-voyage/node_modules/levelup/package.json":[function(require,module,exports){
+module.exports={
+  "name": "levelup",
+  "description": "Fast & simple storage - a Node.js-style LevelDB wrapper",
+  "version": "0.19.0",
+  "contributors": [
+    {
+      "name": "Rod Vagg",
+      "email": "r@va.gg",
+      "url": "https://github.com/rvagg"
+    },
+    {
+      "name": "John Chesley",
+      "email": "john@chesl.es",
+      "url": "https://github.com/chesles/"
+    },
+    {
+      "name": "Jake Verbaten",
+      "email": "raynos2@gmail.com",
+      "url": "https://github.com/raynos"
+    },
+    {
+      "name": "Dominic Tarr",
+      "email": "dominic.tarr@gmail.com",
+      "url": "https://github.com/dominictarr"
+    },
+    {
+      "name": "Max Ogden",
+      "email": "max@maxogden.com",
+      "url": "https://github.com/maxogden"
+    },
+    {
+      "name": "Lars-Magnus Skog",
+      "email": "lars.magnus.skog@gmail.com",
+      "url": "https://github.com/ralphtheninja"
+    },
+    {
+      "name": "David Björklund",
+      "email": "david.bjorklund@gmail.com",
+      "url": "https://github.com/kesla"
+    },
+    {
+      "name": "Julian Gruber",
+      "email": "julian@juliangruber.com",
+      "url": "https://github.com/juliangruber"
+    },
+    {
+      "name": "Paolo Fragomeni",
+      "email": "paolo@async.ly",
+      "url": "https://github.com/hij1nx"
+    },
+    {
+      "name": "Anton Whalley",
+      "email": "anton.whalley@nearform.com",
+      "url": "https://github.com/No9"
+    },
+    {
+      "name": "Matteo Collina",
+      "email": "matteo.collina@gmail.com",
+      "url": "https://github.com/mcollina"
+    },
+    {
+      "name": "Pedro Teixeira",
+      "email": "pedro.teixeira@gmail.com",
+      "url": "https://github.com/pgte"
+    },
+    {
+      "name": "James Halliday",
+      "email": "mail@substack.net",
+      "url": "https://github.com/substack"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rvagg/node-levelup.git"
+  },
+  "homepage": "https://github.com/rvagg/node-levelup",
+  "keywords": [
+    "leveldb",
+    "stream",
+    "database",
+    "db",
+    "store",
+    "storage",
+    "json"
+  ],
+  "main": "lib/levelup.js",
+  "dependencies": {
+    "bl": "~0.8.1",
+    "deferred-leveldown": "~0.2.0",
+    "errno": "~0.1.1",
+    "prr": "~0.0.0",
+    "readable-stream": "~1.0.26",
+    "semver": "~2.3.1",
+    "xtend": "~3.0.0"
+  },
+  "devDependencies": {
+    "leveldown": "~0.10.0",
+    "bustermove": "*",
+    "tap": "*",
+    "referee": "*",
+    "rimraf": "*",
+    "async": "*",
+    "fstream": "*",
+    "tar": "*",
+    "mkfiletree": "*",
+    "readfiletree": "*",
+    "slow-stream": ">=0.0.4",
+    "delayed": "*",
+    "boganipsum": "*",
+    "du": "*",
+    "memdown": "*",
+    "msgpack-js": "*"
+  },
+  "browser": {
+    "leveldown": false,
+    "leveldown/package": false,
+    "semver": false
+  },
+  "scripts": {
+    "test": "tap test/*-test.js --stderr",
+    "functionaltests": "node ./test/functional/fstream-test.js && node ./test/functional/binary-data-test.js && node ./test/functional/compat-test.js",
+    "alltests": "npm test && npm run-script functionaltests"
+  },
+  "license": "MIT",
+  "gitHead": "fb742b01990139b44b1816de87a6e1b2de629627",
+  "bugs": {
+    "url": "https://github.com/rvagg/node-levelup/issues"
+  },
+  "_id": "levelup@0.19.0",
+  "_shasum": "f6b60a168c86c2fe5d5953476cbe9786ccf0a3f7",
+  "_from": "levelup@*",
+  "_npmVersion": "1.4.23",
+  "_npmUser": {
+    "name": "rvagg",
+    "email": "rod@vagg.org"
+  },
+  "maintainers": [
+    {
+      "name": "rvagg",
+      "email": "rod@vagg.org"
+    }
+  ],
+  "dist": {
+    "shasum": "f6b60a168c86c2fe5d5953476cbe9786ccf0a3f7",
+    "tarball": "http://registry.npmjs.org/levelup/-/levelup-0.19.0.tgz"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/levelup/-/levelup-0.19.0.tgz"
+}
 
 },{}],"/home/eric/bulk/bit-voyage/node_modules/qs/lib/index.js":[function(require,module,exports){
 // Load modules
