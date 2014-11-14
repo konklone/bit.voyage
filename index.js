@@ -162,7 +162,7 @@ var uploadFile = function(file) {
   }
 
   // 1 at a time for now
-  upload.concurrentParts(4);
+  upload.concurrentParts(1);
 
   upload.on('part', function(data) {
     var progress = active.originalOffset + data.uploadedSize;
