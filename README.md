@@ -10,7 +10,7 @@
 
 **Implementation:**
 
-* Use the [Drag and Drop API](http://blog.teamtreehouse.com/implementing-native-drag-and-drop), available [in modern desktop browsers](http://caniuse.com/#feat=dragndrop), to let anyone drag a file into their browser
+* Use the [Drag and Drop API](http://blog.teamtreehouse.com/implementing-native-drag-and-drop), available [in modern desktop browsers](http://caniuase.com/#feat=dragndrop), to let anyone drag a file into their browser
 * Use the [File API](http://docs.webplatform.org/wiki/apis/file), available [in modern browsers](http://caniuse.com/#feat=fileapi), to chunk and stream file objects in-browser
 * Use the [FileReader object](https://developer.mozilla.org/en-US/docs/Web/API/FileReader), available [in modern browsers](http://caniuse.com/#feat=filereader), to read the contents of chunks into memory
 
@@ -63,7 +63,7 @@ For Amazon S3, this will require making 100MB+ HTTP POST requests, which realist
 * Being able to handle backpressure from the server all the way down to reading the file.
 * Sending progress/etc events down the wire as well.
 
-One interesting project is @maxogden's [`abstract-blog-store`](https://github.com/maxogden/abstract-blob-store), which aims to present a consistent interface to streaming blobs up and down anything that supports a stream. It's a little nascent, and doesn't yet have the semantics to support resumption, but it feels like the right direction.
+One interesting project is @maxogden's [`abstract-blob-store`](https://github.com/maxogden/abstract-blob-store), which aims to present a consistent interface to streaming blobs up and down anything that supports a stream. It's a little nascent, and doesn't yet have the semantics to support resumption, but it feels like the right direction.
 
 
 
