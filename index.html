@@ -64,13 +64,13 @@
   <section class="instructions">
     <p>
       <strong>CORS trouble?</strong>
-      Paste this into your S3 bucket's CORS configuration. Change <code class="inline">http://bit.voyage</code> to <code class="inline">*</code> to allow it to come from anywhere.
+      Paste this into your S3 bucket's CORS configuration. Change <code class="inline">https://bit.voyage</code> to <code class="inline">*</code> to allow it to come from anywhere.
     </p>
   <code><pre id="instructions">
 &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;CORSConfiguration xmlns=&quot;http://s3.amazonaws.com/doc/2006-03-01/&quot;&gt;
     &lt;CORSRule&gt;
-        &lt;AllowedOrigin&gt;http://bit.voyage&lt;/AllowedOrigin&gt;
+        &lt;AllowedOrigin&gt;https://bit.voyage&lt;/AllowedOrigin&gt;
         &lt;AllowedMethod&gt;HEAD&lt;/AllowedMethod&gt;
         &lt;AllowedMethod&gt;GET&lt;/AllowedMethod&gt;
         &lt;AllowedMethod&gt;PUT&lt;/AllowedMethod&gt;
