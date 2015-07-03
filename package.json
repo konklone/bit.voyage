@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/konklone/bit-voyage/issues"
   },
-  "homepage": "http://bit.voyage",
+  "homepage": "https://bit.voyage",
 
   "dependencies": {
     "filereader-stream": "/home/eric/bulk/filereader-stream",
