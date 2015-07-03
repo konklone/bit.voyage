@@ -1,5 +1,4 @@
 var Writable = require('stream').Writable;
-// var qs = require("qs");
 
 module.exports = {
 
