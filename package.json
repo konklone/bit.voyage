@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/konklone/bit-voyage/issues"
   },
-  "homepage": "http://bit.voyage",
+  "homepage": "https://bit.voyage",
 
   "dependencies": {
     "filereader-stream": "/home/eric/bulk/filereader-stream",
@@ -24,6 +24,7 @@
 
   "main": "index.js",
   "scripts": {
-    "watch": "watchify -r ./assets/js/db.js -r ./assets/js/utils.js -r ./assets/js/drop.js -r filereader-stream -r qs -r aws-sdk -r s3-upload-stream -o assets/js/bundle.js"
+    "build": "browserify -r stream -r filereader-stream -r qs -r aws-sdk -r s3-upload-stream -o assets/js/bundle.js",
+    "watch": "watchify  -r stream -r filereader-stream -r qs -r aws-sdk -r s3-upload-stream -o assets/js/bundle.js"
   }
 }
