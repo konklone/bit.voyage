@@ -81,7 +81,7 @@ var utils = {
     });
 
     echoStream._write = function (chunk, encoding, next) {
-      console.log("chunk received. " + chunk.length);
+      console.log("chunk received. encoding: " + encoding + ", length: " + chunk.length);
       setTimeout(next, delay);
     };
 
@@ -223,7 +223,6 @@ var uploadFile = function(file) {
   **/
 
   fstream = FileReaderStream(file, {
-    output: "binary",
     chunkSize: (1 * 1024 * 1024),
     offset: params.offset
   });
@@ -346,6 +345,7 @@ var uploadFile = function(file) {
   $(".control").hide();
 
   fstream.pipe(upload);
+  // fstream.pipe(utils.echo())
 };
 
 
