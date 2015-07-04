@@ -11,32 +11,32 @@
 **Implementation:**
 
 * Use the [Drag and Drop API](http://blog.teamtreehouse.com/implementing-native-drag-and-drop), available [in modern desktop browsers](http://caniuase.com/#feat=dragndrop), to let anyone drag a file into their browser
-* Use the [File API](http://docs.webplatform.org/wiki/apis/file), available [in modern browsers](http://caniuse.com/#feat=fileapi), to chunk and stream file objects in-browser
+* Use the [File API](https://docs.webplatform.org/wiki/apis/file), available [in modern browsers](http://caniuse.com/#feat=fileapi), to chunk and stream file objects in-browser
 * Use the [FileReader object](https://developer.mozilla.org/en-US/docs/Web/API/FileReader), available [in modern browsers](http://caniuse.com/#feat=filereader), to read the contents of chunks into memory
 
 **Goals:**
 
-* **Short-term:** Use the [S3 Multipart Upload API](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTAPImpUpload.html) to allow users to upload files of any size directly to S3. (**Update:** this is working, for up to ~100GB.)
+* **Short-term:** Use the [S3 Multipart Upload API](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingRESTAPImpUpload.html) to allow users to upload files of any size directly to S3. (**Update:** this is working, for up to ~100GB.)
 * **Long-term:** Allow upload to servers which support the Amazon S3 API but provide their own layer of authentication. Example: [The Internet Archive](https://archive.org/help/abouts3.txt).
 * **Longest-term:** Instead of S3, allow users to stream files directly to other users over WebRTC, in the style of [Sharefest.me](https://www.sharefest.me/), as long as their browser tab is open.
 
 ### Working demo
 
-A working demo is available at [bit.voyage](http://bit.voyage). It lets you drag files of up to around **100GB** into an S3 bucket. Files much larger than that will cause your browser to try to send very large parts, and files of around the 1TB range may crash your browser (like they did mine).
+A working demo is available at [bit.voyage](https://bit.voyage). It lets you drag files of up to around **100GB** into an S3 bucket. Files much larger than that will cause your browser to try to send very large parts, and files of around the 1TB range may crash your browser (like they did mine).
 
 * Enter your S3 credentials into the URL **hash** (not the query string):
 
 ```
-http://bit.voyage/#bucket=[your-bucket]&key=[your-key]&secret_key=[your-secret-key]
+https://bit.voyage/#bucket=[your-bucket]&key=[your-key]&secret_key=[your-secret-key]
 ```
 
-* Make sure your S3 bucket [has CORS enabled](http://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html). Use the following CORS configuration, changing `http://bit.voyage` to `*` if you want it to work with more domains.
+* Make sure your S3 bucket [has CORS enabled](http://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html). Use the following CORS configuration, changing `https://bit.voyage` to `*` if you want it to work with more domains.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
     <CORSRule>
-        <AllowedOrigin>http://bit.voyage</AllowedOrigin>
+        <AllowedOrigin>https://bit.voyage</AllowedOrigin>
         <AllowedMethod>HEAD</AllowedMethod>
         <AllowedMethod>GET</AllowedMethod>
         <AllowedMethod>PUT</AllowedMethod>

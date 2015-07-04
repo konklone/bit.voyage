@@ -7,9 +7,125 @@ var FileReaderStream = require('filereader-stream'); // thank you @maxogden
 var s3Stream = require('s3-upload-stream'); // thank you @nathanpeck
 var AWS = require("aws-sdk"); // thank you @lsegal
 
-var drop = require("./assets/js/drop.js");
-var utils = require("./assets/js/utils.js");
-var db = require("./assets/js/db.js");
+
+
+/** previously drop.js */
+
+function handleDrop(callback, event) {
+  event.stopPropagation();
+  event.preventDefault();
+  hideTarget();
+  // console.log("drop!")
+  callback(Array.prototype.slice.call(event.dataTransfer.files))
+}
+
+// indicate it's active
+function onDragEnter(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  showTarget();
+  // console.log("enter!")
+  return false;
+}
+
+function onDragLeave(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  // hideTarget();
+  // console.log("leave!")
+  return false;
+}
+
+// don't do anything while dragging
+function onDragOver(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  // showTarget();
+  // console.log("over!")
+  return false;
+}
+
+var showTarget = function() {
+  document.getElementById("dragging").style.display = "block";
+};
+
+var hideTarget = function() {
+  document.getElementById("dragging").style.display = "none";
+};
+
+// set up callbacks on element
+var drop = function (element, callback, enter, over) {
+  element.addEventListener("dragenter", onDragEnter, false);
+  element.addEventListener("dragleave", onDragLeave, false);
+  element.addEventListener("dragover", onDragOver, false);
+  element.addEventListener("drop", handleDrop.bind(undefined, callback), false);
+}
+
+
+
+/** previously utils.js **/
+
+var Writable = require('stream').Writable;
+
+var utils = {
+
+  updateLink: function(qs, params) {
+    var link = window.location.protocol + "//" + window.location.host + "/#" + qs.stringify(params);
+    window.location = link;
+    return false;
+  },
+
+  echo: function(delay) {
+    var echoStream = new Writable({
+      highWaterMark: 4194304
+    });
+
+    echoStream._write = function (chunk, encoding, next) {
+      console.log("chunk received. encoding: " + encoding + ", length: " + chunk.length);
+      setTimeout(next, delay);
+    };
+
+    return echoStream;
+  },
+
+  display: function(bytes) {
+    if (bytes > 1e9)
+      return (bytes / 1e9).toFixed(2) + 'GB';
+    else if (bytes > 1e6)
+      return (bytes / 1e6).toFixed(2) + 'MB';
+    else
+      return (bytes / 1e3).toFixed(2) + 'KB';
+  },
+
+  // counter of MBs
+  mbCounter: function() {
+    var MBs = 5;
+    var MB = 1000 * 1000;
+    var next = 1;
+    return function(progress) {
+      if (progress > (next * (MBs * MB))) {
+        var current = parseInt(progress / (MBs * MB)) * MBs;
+        console.log("filereader-stream: MBs: " + current);
+        next = parseInt((current + MBs) / MBs);
+      }
+    }
+  },
+
+  log: function(id) {
+    var elem = document.getElementById(id);
+
+    return function(msg) {
+      elem.innerHTML = (msg + "<br/>") + elem.innerHTML;
+      elem.scrollTop = 0; // elem.scrollHeight; // for bottom
+    }
+  }
+
+};
+
+
+
+
+
 
 /**
  * Load in any state from the URL, and initialize bit vehicles.
@@ -107,7 +223,6 @@ var uploadFile = function(file) {
   **/
 
   fstream = FileReaderStream(file, {
-    output: "binary",
     chunkSize: (1 * 1024 * 1024),
     offset: params.offset
   });
@@ -230,6 +345,7 @@ var uploadFile = function(file) {
   $(".control").hide();
 
   fstream.pipe(upload);
+  // fstream.pipe(utils.echo())
 };
 
 
