@@ -205,12 +205,10 @@ $(".s3.test").click(function() {
 });
 
 /**
- * Initializing and updating the current upload.
- * Used by 'part' event handler for S3 stream.
+ * Has the user said the file can be publicly downloadable?
  */
-
-function updateUpload() {
-
+function permissions() {
+  return $("#public").prop("checked");
 };
 
 
@@ -262,8 +260,11 @@ var uploadFile = function(file) {
     "Bucket": params.bucket,
     "Key": file.name,
     "ContentType": file.type,
-    "ACL": "public-read"
+    "ACL": (permissions() ? "public-read" : "private")
   });
+
+  // for later fetching, even if the user checked/unchecked the box during the upload
+  upload.public = permissions();
 
   // by default, part size means a 50GB max (10000 part limit)
   // by raising part size, we increase total capacity
@@ -291,11 +292,19 @@ var uploadFile = function(file) {
   });
 
   upload.on('uploaded', function(data) {
-    log("Arrived! Download <strong>" + file.name + "</strong> at " +
-      "<a href=\"" + data.Location + "\">" +
-        data.Location +
-      "</a>"
-    );
+    var download = "Arrived! ";
+
+    if (upload.public) {
+      download += "Download <strong>" + file.name + "</strong> at " +
+        "<a target=\"_blank\" href=\"" + data.Location + "\">" +
+          data.Location +
+        "</a>";
+    } else {
+      download += file.name + " has been uploaded to private bucket as " +
+        " <strong>" + data.Key + "</strong>.";
+    }
+
+    log(download);
 
     $(".control").hide();
 
