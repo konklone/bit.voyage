@@ -138,7 +138,8 @@ var params = qs.parse(location.hash ? location.hash.replace("#", "") : null);
 var session = {
   key: params.key,
   "secret-key": params['secret-key'],
-  bucket: params.bucket
+  bucket: params.bucket,
+  public: params.public // "true" or "false"
 };
 
 // active upload
@@ -174,6 +175,7 @@ var log = utils.log("main-log");
 $(".bucket").val(params.bucket);
 $(".access-key").val(params.key);
 $(".secret-key").val(params['secret-key']);
+$("#public").prop("checked", (params.public == "false" ? false : true));
 
 // changing values updates session automatically
 $(".param").keyup(function() {
@@ -182,6 +184,12 @@ $(".param").keyup(function() {
   session.key = $(".access-key").val();
   session["secret-key"] = $(".secret-key").val();
   initAWS();
+  utils.updateLink(qs, session);
+});
+
+$("#public").click(function() {
+  console.log("changed permissions, public: " + permissions());
+  session.public = permissions().toString();
   utils.updateLink(qs, session);
 });
 
@@ -300,7 +308,7 @@ var uploadFile = function(file) {
           data.Location +
         "</a>";
     } else {
-      download += file.name + " has been uploaded to private bucket as " +
+      download += file.name + " has been uploaded privately as " +
         " <strong>" + data.Key + "</strong>.";
     }
 
